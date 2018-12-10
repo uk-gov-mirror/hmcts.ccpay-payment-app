@@ -179,7 +179,7 @@ module "payment-api" {
 }
 
 module "payment-database" {
-  source = "git@github.com:hmcts/moj-module-postgres?ref=master"
+  source = "git@github.com:hmcts/moj-module-postgres?ref=feature/restrict-access-to-dbs"
   product = "${var.product}-postgres-db"
   location = "${var.location}"
   env = "${var.env}"

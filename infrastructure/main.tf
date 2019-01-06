@@ -119,6 +119,7 @@ module "payment-api" {
     LIBERATA_OAUTH2_USERNAME = "${data.azurerm_key_vault_secret.liberata_keys_oauth2_username.value}"
     LIBERATA_OAUTH2_PASSWORD = "${data.azurerm_key_vault_secret.liberata_keys_oauth2_password.value}"
     LIBERATA_API_ACCOUNT_URL = "${var.liberata_api_account_url}"
+    LIBERATA_API_PAYMENT_URL = "${var.liberata_api_payment_url}"
     LIBERATA_OAUTH2_BASE_URL = "${var.liberata_oauth2_base_url}"
     LIBERATA_OAUTH2_AUTHORIZE_URL = "${var.liberata_oauth2_authorize_url}"
     LIBERATA_OAUTH2_TOKEN_URL = "${var.liberata_oauth2_token_url}"

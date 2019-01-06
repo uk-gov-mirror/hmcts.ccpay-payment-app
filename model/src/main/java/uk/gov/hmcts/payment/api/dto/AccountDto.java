@@ -11,13 +11,13 @@ import uk.gov.hmcts.payment.api.util.AccountStatus;
 import java.math.BigDecimal;
 import java.util.Date;
 
-@JsonNaming(PropertyNamingStrategy.SnakeCaseStrategy.class)
+@JsonNaming(PropertyNamingStrategy.UpperCamelCaseStrategy.class)
 @AllArgsConstructor
 @NoArgsConstructor
 @Data
 public class AccountDto {
 
-    private String accountNumber;
+    private String pbaNumber;
 
     private String accountName;
 

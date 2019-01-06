@@ -26,6 +26,7 @@ import uk.gov.hmcts.payment.api.contract.CreditAccountPaymentRequest;
 import uk.gov.hmcts.payment.api.contract.PaymentDto;
 import uk.gov.hmcts.payment.api.contract.util.Service;
 import uk.gov.hmcts.payment.api.dto.AccountDto;
+import uk.gov.hmcts.payment.api.dto.AccountPaymentDto;
 import uk.gov.hmcts.payment.api.dto.mapper.CreditAccountDtoMapper;
 import uk.gov.hmcts.payment.api.exception.AccountNotFoundException;
 import uk.gov.hmcts.payment.api.exception.AccountServiceUnavailableException;
@@ -59,14 +60,14 @@ public class CreditAccountPaymentController {
 
     private final CreditAccountPaymentService<PaymentFeeLink, String> creditAccountPaymentService;
     private final CreditAccountDtoMapper creditAccountDtoMapper;
-    private final AccountService<AccountDto, String> accountService;
+    private final AccountService<AccountDto, String, AccountPaymentDto> accountService;
     private final FF4j ff4j;
 
 
     @Autowired
     public CreditAccountPaymentController(@Qualifier("loggingCreditAccountPaymentService") CreditAccountPaymentService<PaymentFeeLink, String> creditAccountPaymentService,
                                           CreditAccountDtoMapper creditAccountDtoMapper,
-                                          AccountService<AccountDto, String> accountService,
+                                          AccountService<AccountDto, String, AccountPaymentDto> accountService,
                                           FF4j ff4j) {
         this.creditAccountPaymentService = creditAccountPaymentService;
         this.creditAccountDtoMapper = creditAccountDtoMapper;
@@ -120,6 +121,15 @@ public class CreditAccountPaymentController {
 
             if (accountDetails.getStatus() == AccountStatus.ACTIVE && isAccountBalanceSufficient(accountDetails.getAvailableBalance(),
                 creditAccountPaymentRequest.getAmount())) {
+                //TODO
+//                AccountPaymentDto paymentDto = AccountPaymentDto.createAccountPaymentRequestDtoWith()
+//                try {
+//                    accountDetails = accountService.post(paymentDto);
+//                } catch (Exception e) {
+//                    e.printStackTrace();
+//                }
+//                if()
+                //END TODO
                 payment.setPaymentStatus(PaymentStatus.paymentStatusWith().name("success").build());
             } else if (accountDetails.getStatus() == AccountStatus.ACTIVE) {
                 payment.setPaymentStatus(PaymentStatus.paymentStatusWith().name(FAILED).build());

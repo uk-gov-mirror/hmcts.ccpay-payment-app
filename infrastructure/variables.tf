@@ -63,6 +63,10 @@ variable "liberata_api_account_url" {
   default = "https://bpacustomerportal.liberata.com/pba/public/api/v2/account"
 }
 
+variable "liberata_api_payment_url" {
+  default = "https://bpacustomerportal.liberata.com/pba/public/api/v2/payment"
+}
+
 variable "liberata_oauth2_authorize_url" {
   default = "https://bpacustomerportal.liberata.com/pba/public/oauth/authorize"
 }

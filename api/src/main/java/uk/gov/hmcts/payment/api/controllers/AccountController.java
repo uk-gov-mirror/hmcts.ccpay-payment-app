@@ -73,8 +73,9 @@ public class AccountController {
                     throw new ExceededCreditLimitException("Exceeded Credit Limit");
                 case PAYLOAD_TOO_LARGE:
                     throw new CaseInformationTooLargeException("Case Information too large");
+                default:
+                    throw new AccountNotFoundException("Account not found");
             }
-            throw new AccountNotFoundException("Account not found");
         }
     }
 

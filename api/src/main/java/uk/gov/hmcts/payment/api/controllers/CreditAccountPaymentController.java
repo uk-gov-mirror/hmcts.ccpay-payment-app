@@ -22,6 +22,7 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.HttpStatusCodeException;
 import uk.gov.hmcts.payment.api.contract.CreditAccountPaymentRequest;
 import uk.gov.hmcts.payment.api.contract.PaymentDto;
 import uk.gov.hmcts.payment.api.contract.util.Service;
@@ -121,23 +122,33 @@ public class CreditAccountPaymentController {
 
             if (accountDetails.getStatus() == AccountStatus.ACTIVE && isAccountBalanceSufficient(accountDetails.getAvailableBalance(),
                 creditAccountPaymentRequest.getAmount())) {
-                //TODO
-//                AccountPaymentDto paymentDto = AccountPaymentDto.createAccountPaymentRequestDtoWith()
-//                try {
-//                    accountDetails = accountService.post(paymentDto);
-//                } catch (Exception e) {
-//                    e.printStackTrace();
-//                }
-//                if()
-                //END TODO
+                AccountPaymentDto paymentDto = AccountPaymentDto.createAccountPaymentRequestDtoWith()
+                try {
+                    accountDetails = accountService.post(paymentDto);
+                } catch (HttpStatusCodeException statusException) {
+                    //log
+                    switch (statusException.getStatusCode()) {
+                        case BAD_REQUEST:
+                            payment.setPaymentStatus(PaymentStatus.paymentStatusWith().name(FAILED).build());
+                            payment.setStatusHistories(Collections.singletonList(StatusHistory.statusHistoryWith()
+                                .status(payment.getPaymentStatus().getName())
+                                .errorCode("CA-E0001")
+                                .message("You have insufficient funds available")
+                                .build()));
+                            break;
+                        case PAYLOAD_TOO_LARGE:
+                            payment.setPaymentStatus(PaymentStatus.paymentStatusWith().name(FAILED).build());
+                            payment.setStatusHistories(Collections.singletonList(StatusHistory.statusHistoryWith()
+                                .status(payment.getPaymentStatus().getName())
+                                .errorCode("CA-E0002")
+                                .message("Case information is too large")
+                                .build()));
+                            break;
+                    }
+                    //treat error
+                }
+
                 payment.setPaymentStatus(PaymentStatus.paymentStatusWith().name("success").build());
-            } else if (accountDetails.getStatus() == AccountStatus.ACTIVE) {
-                payment.setPaymentStatus(PaymentStatus.paymentStatusWith().name(FAILED).build());
-                payment.setStatusHistories(Collections.singletonList(StatusHistory.statusHistoryWith()
-                    .status(payment.getPaymentStatus().getName())
-                    .errorCode("CA-E0001")
-                    .message("You have insufficient funds available")
-                    .build()));
             } else if (accountDetails.getStatus() == AccountStatus.ON_HOLD) {
                 payment.setPaymentStatus(PaymentStatus.paymentStatusWith().name(FAILED).build());
                 payment.setStatusHistories(Collections.singletonList(StatusHistory.statusHistoryWith()

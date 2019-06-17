@@ -31,10 +31,9 @@ import uk.gov.hmcts.payment.api.dto.mapper.PaymentDtoMapper;
 import uk.gov.hmcts.payment.api.model.Payment;
 import uk.gov.hmcts.payment.api.model.PaymentEvent;
 import uk.gov.hmcts.payment.api.model.PaymentFeeLink;
-import uk.gov.hmcts.payment.api.model.PaymentNoUpdate;
+import uk.gov.hmcts.payment.api.model.PaymentPatch;
 import uk.gov.hmcts.payment.api.model.PaymentStatusRepository;
 import uk.gov.hmcts.payment.api.model.StatusHistory;
-import uk.gov.hmcts.payment.api.model.StatusHistoryNoUpdate;
 import uk.gov.hmcts.payment.api.service.CallbackService;
 import uk.gov.hmcts.payment.api.service.PaymentService;
 import uk.gov.hmcts.payment.api.util.DateUtil;
@@ -43,7 +42,6 @@ import uk.gov.hmcts.payment.api.v1.model.exceptions.PaymentException;
 import uk.gov.hmcts.payment.api.v1.model.exceptions.PaymentNotFoundException;
 import uk.gov.hmcts.payment.api.validators.PaymentValidator;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
@@ -89,7 +87,7 @@ public class PaymentController {
     @Transactional
     public ResponseEntity updateCaseReference(@PathVariable("reference") String reference,
                                               @RequestBody @Validated UpdatePaymentRequest request) {
-        Optional<PaymentNoUpdate> payment = getPaymentNoUpdateByReference(reference);
+        Optional<Payment> payment = getPaymentByReference(reference);
 
         if (payment.isPresent()) {
             if (request.getCaseReference() != null) {
@@ -99,13 +97,11 @@ public class PaymentController {
                 payment.get().setCcdCaseNumber(request.getCcdCaseNumber());
             }
 
-            if (payment.get().getStatusHistories() != null) {
-                payment.get().getStatusHistories().add(StatusHistoryNoUpdate.statusHistoryWith().payment(payment.get()).eventName(PaymentEvent.CASE_REF_UPDATE).build());
-            } else {
-                payment.get().setStatusHistories(Collections.singletonList(StatusHistoryNoUpdate.statusHistoryWith().eventName(PaymentEvent.CASE_REF_UPDATE).build()));
-            }
-
-            payment.get()
+//            if (payment.get().getStatusHistories() != null) {
+//                payment.get().getStatusHistories().add(StatusHistoryPatch.statusHistoryWith().eventName(PaymentEvent.CASE_REF_UPDATE).build());
+//            } else {
+//                payment.get().setStatusHistories(Collections.singletonList(StatusHistoryPatch.statusHistoryWith().eventName(PaymentEvent.CASE_REF_UPDATE).build()));
+//            }
 
             return new ResponseEntity<>(HttpStatus.NO_CONTENT);
         }
@@ -213,12 +209,12 @@ public class PaymentController {
             .filter(p -> p.getReference().equals(reference)).findAny();
     }
 
-    private Optional<PaymentNoUpdate> getPaymentNoUpdateByReference(String reference) {
+    private Optional<PaymentPatch> getPaymentNoUpdateByReference(String reference) {
         PaymentFeeLink paymentFeeLink = paymentService.retrieve(reference);
         Optional<Payment> payment = paymentFeeLink.getPayments().stream()
             .filter(p -> p.getReference().equals(reference)).findAny();
         if (payment.isPresent()) {
-            return Optional.ofNullable(PaymentNoUpdate.fromPayment(payment.get()));
+            return Optional.ofNullable(PaymentPatch.fromPayment(payment.get()));
         } else {
             return Optional.empty();
         }

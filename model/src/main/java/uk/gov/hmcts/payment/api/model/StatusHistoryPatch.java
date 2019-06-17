@@ -30,7 +30,7 @@ import java.util.stream.Collectors;
 @NoArgsConstructor
 @Inheritance(strategy = InheritanceType.JOINED)
 @Table(name = "payment_event_history")
-public class StatusHistoryNoUpdate {
+public class StatusHistoryPatch {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -62,11 +62,11 @@ public class StatusHistoryNoUpdate {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "payment_id", insertable = false, updatable = false)
-    private PaymentNoUpdate payment;
+    private PaymentPatch payment;
 
-    public static List<StatusHistoryNoUpdate> fromStatusHistoryUpdateList(List<StatusHistory> statusHistoryList) {
-        Function<StatusHistory, StatusHistoryNoUpdate> externalToMyLocation
-            = statusHistory -> StatusHistoryNoUpdate.statusHistoryWith()
+    public static List<StatusHistoryPatch> fromStatusHistoryUpdateList(List<StatusHistory> statusHistoryList) {
+        Function<StatusHistory, StatusHistoryPatch> externalToMyLocation
+            = statusHistory -> StatusHistoryPatch.statusHistoryWith()
             .id(statusHistory.getId())
             .dateCreated(statusHistory.getDateCreated())
             .dateUpdated(statusHistory.getDateUpdated())
@@ -75,7 +75,7 @@ public class StatusHistoryNoUpdate {
             .errorCode(statusHistory.getErrorCode())
             .message(statusHistory.getMessage())
             .eventName(statusHistory.getEventName())
-            .payment(statusHistory.getPayment() != null ? PaymentNoUpdate.fromPayment(statusHistory.getPayment()) : null)
+            .payment(statusHistory.getPayment() != null ? PaymentPatch.fromPayment(statusHistory.getPayment()) : null)
             .build();
 
         return statusHistoryList.stream()

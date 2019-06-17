@@ -145,11 +145,24 @@ public class PaymentControllerTest extends PaymentsDataUtil {
         assertEquals(paymentDto.getCcdCaseNumber(), "ccdCaseNumber");
 
         /* -- update payment -- */
-        UpdatePaymentRequest updatePaymentRequest = objectMapper.readValue(updatePaymentRequestJson().getBytes(), UpdatePaymentRequest.class);
+        UpdatePaymentRequest updatePaymentRequest = UpdatePaymentRequest.updatePaymentRequestWith()
+            .caseReference("newCaseReference")
+            .ccdCaseNumber("newCcdCaseNumber")
+            .build();
+
         MvcResult result2 = restActions.
             patch(format("/payments/" + paymentDto.getReference()), updatePaymentRequest)
             .andExpect(status().isNoContent())
             .andReturn();
+
+        MvcResult result3 = restActions.
+            get(format("/payments/RC-1519-9028-1909-3890"))
+            .andExpect(status().isOk())
+            .andReturn();
+
+        PaymentDto paymentDtoUpdated = objectMapper.readValue(result3.getResponse().getContentAsByteArray(), PaymentDto.class);
+        assertEquals("newCaseReference", paymentDtoUpdated.getCaseReference());
+        assertEquals("newCcdCaseNumber", paymentDtoUpdated.getCcdCaseNumber());
     }
 
     @Test
@@ -192,13 +205,70 @@ public class PaymentControllerTest extends PaymentsDataUtil {
             .andReturn();
 
         MvcResult result3 = restActions.
+            get(format("/payments/RC-1519-9028-1909-3890"))
+            .andExpect(status().isOk())
+            .andReturn();
+
+        PaymentDto paymentDtoUpdated = objectMapper.readValue(result3.getResponse().getContentAsByteArray(), PaymentDto.class);
+
+//        PaymentFeeLink updatedPaymentFeeLink = db.findByReference("2018-15186168000");
+        assertEquals(paymentDtoUpdated.getStatusHistories().size(), 2);
+//        assertEquals(updatedPaymentFeeLink.getPayments().get(0).getStatusHistories().size(), 2);
+        assertEquals(paymentDtoUpdated.getStatusHistories().get(1).getEventName(), PaymentEvent.CASE_REF_UPDATE.getName());
+//        assertEquals(updatedPaymentFeeLink.getPayments().get(0).getStatusHistories().get(1).getEventName(), PaymentEvent.CASE_REF_UPDATE.getName());
+    }
+
+    @Test
+    public void updatePaymentStatus_forGivenPaymentReferenceTest_addsToStatusHistory() throws Exception {
+        StatusHistory oldStatusHistory = StatusHistory.statusHistoryWith().status("pending").build();
+
+        //Create a payment in remissionDbBackdoor
+        Payment payment = Payment.paymentWith()
+            .amount(new BigDecimal("11.99"))
+            .caseReference("caseReference")
+            .ccdCaseNumber("ccdCaseNumber")
+            .description("Description1")
+            .serviceType("Probate")
+            .currency("GBP")
+            .siteId("AA01")
+            .userId(USER_ID)
+            .statusHistories(Collections.singletonList(oldStatusHistory))
+            .paymentChannel(PaymentChannel.paymentChannelWith().name("online").build())
+            .paymentMethod(PaymentMethod.paymentMethodWith().name("payment by account").build())
+            .paymentStatus(PaymentStatus.paymentStatusWith().name("created").build())
+            .reference("RC-1519-9028-1909-3890")
+            .build();
+        PaymentFee fee = PaymentFee.feeWith().calculatedAmount(new BigDecimal("11.99")).version("1").code("X0001").build();
+
+        String paymentReference = "2018-15186168000";
+        PaymentFeeLink paymentFeeLink = db.create(paymentFeeLinkWith().paymentReference(paymentReference).payments(Arrays.asList(payment)).fees(Arrays.asList(fee)));
+        payment.setPaymentLink(paymentFeeLink);
+        Payment savedPayment = paymentFeeLink.getPayments().get(0);
+
+        MvcResult result1 = restActions.
             get(format("/credit-account-payments/RC-1519-9028-1909-3890"))
             .andExpect(status().isOk())
             .andReturn();
 
-        PaymentFeeLink updatedPaymentFeeLink = db.findByReference("2018-15186168000");
-        assertEquals(updatedPaymentFeeLink.getPayments().get(0).getStatusHistories().size(), 2);
-        assertEquals(updatedPaymentFeeLink.getPayments().get(0).getStatusHistories().get(1).getEventName(), PaymentEvent.CASE_REF_UPDATE.getName());
+        PaymentDto paymentDto = objectMapper.readValue(result1.getResponse().getContentAsByteArray(), PaymentDto.class);
+
+        /* -- update payment -- */
+        restActions
+            .patch("/payments/" + paymentDto.getReference() + "/status/success")
+            .andExpect(status().isNoContent());
+
+        MvcResult result3 = restActions.
+            get(format("/payments/RC-1519-9028-1909-3890"))
+            .andExpect(status().isOk())
+            .andReturn();
+
+        PaymentDto paymentDtoUpdated = objectMapper.readValue(result3.getResponse().getContentAsByteArray(), PaymentDto.class);
+
+//        PaymentFeeLink updatedPaymentFeeLink = db.findByReference("2018-15186168000");
+        assertEquals(paymentDtoUpdated.getStatusHistories().size(), 2);
+//        assertEquals(updatedPaymentFeeLink.getPayments().get(0).getStatusHistories().size(), 2);
+        assertEquals(paymentDtoUpdated.getStatusHistories().get(1).getEventName(), PaymentEvent.STATUS_CHANGE.getName());
+//        assertEquals(updatedPaymentFeeLink.getPayments().get(0).getStatusHistories().get(1).getEventName(), PaymentEvent.CASE_REF_UPDATE.getName());
     }
 
     @Test

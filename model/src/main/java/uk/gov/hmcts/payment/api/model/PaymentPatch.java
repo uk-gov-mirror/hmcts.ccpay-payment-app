@@ -6,7 +6,6 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.ToString;
 import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.UpdateTimestamp;
 
 import javax.persistence.*;
 import java.math.BigDecimal;
@@ -23,7 +22,7 @@ import java.util.List;
     @Index(name = "ix_pay_ccd_case_number", columnList = "ccd_case_number"),
     @Index(name = "ix_pay_payment_status_provider", columnList = "payment_status, payment_provider")
 })
-public class PaymentNoUpdate {
+public class PaymentPatch {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
@@ -123,13 +122,13 @@ public class PaymentNoUpdate {
     @OneToMany(cascade = CascadeType.ALL)
     @JoinColumn(name = "payment_id", referencedColumnName = "id", nullable = false)
     @ToString.Exclude
-    private List<StatusHistoryNoUpdate> statusHistories;
+    private List<StatusHistoryPatch> statusHistories;
 
     @Column(name = "service_callback_url")
     private String serviceCallbackUrl;
 
-    public static PaymentNoUpdate fromPayment(Payment payment) {
-        return PaymentNoUpdate.paymentNoUpdateWith()
+    public static PaymentPatch fromPayment(Payment payment) {
+        return PaymentPatch.paymentNoUpdateWith()
             .id(payment.getId())
             .userId(payment.getUserId())
             .externalReference(payment.getExternalReference())
@@ -161,7 +160,7 @@ public class PaymentNoUpdate {
             .reference(payment.getReference())
             .reportedDateOffline(payment.getReportedDateOffline())
             .paymentLink(payment.getPaymentLink())
-            .statusHistories(payment.getStatusHistories() != null ? StatusHistoryNoUpdate.fromStatusHistoryUpdateList(payment.getStatusHistories()) : null)
+            .statusHistories(payment.getStatusHistories() != null ? StatusHistoryPatch.fromStatusHistoryUpdateList(payment.getStatusHistories()) : null)
             .serviceCallbackUrl(payment.getServiceCallbackUrl())
             .build();
     }

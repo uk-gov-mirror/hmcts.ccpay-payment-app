@@ -24,11 +24,12 @@ public class PaymentReference {
     public String getNext() {
         SecureRandom random = new SecureRandom();
 
+
         DateTime dateTime = new DateTime(DateTimeZone.UTC);
         long dateTimeinMillis = dateTime.getMillis() / 100;
 
         String nextVal = String.format("%010d", dateTimeinMillis);
-        return LocalDateTime.now().getYear() + "-" + nextVal;
+        return LocalDateTime.now().getYear() + "-" + random.nextInt() + nextVal;
     }
 
 }

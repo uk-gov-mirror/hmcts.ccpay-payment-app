@@ -16,6 +16,7 @@ import javax.validation.constraints.NotNull;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
+import java.util.Optional;
 
 
 @Service
@@ -68,6 +69,11 @@ public class PaymentServiceImpl implements PaymentService<PaymentFeeLink, String
             callbackService.callback(payment.getPaymentLink(), payment);
         }
         telephonyRepository.save(TelephonyCallback.telephonyCallbackWith().paymentReference(paymentReference).payload(payload).build());
+    }
+
+    @Override
+    public List<Payment> getPayments(Date atStartOfDay, Date atEndOfDay) {
+        return paymentRepository.findAllByDateCreatedBetween(atStartOfDay, atEndOfDay).orElse(Collections.EMPTY_LIST);
     }
 
     @Override

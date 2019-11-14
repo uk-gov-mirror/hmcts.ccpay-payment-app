@@ -20,8 +20,11 @@ public class BulkScanningReportMapper {
         LOG.info("Inside BulkScanningReportMapper");
         List<BulkScanningReportDto> bulkScanningReportDtoList = new ArrayList<>();
 
-        bulkScanningReportDtoList = payments.stream()
+        payments = payments.stream()
             .filter(payment -> payment.getPaymentProvider().getName().equalsIgnoreCase("exela"))
+            .collect(Collectors.toList());
+
+        bulkScanningReportDtoList = payments.stream()
             .filter(payment ->
                 (payment.getPaymentAllocation().get(0).getPaymentAllocationStatus().getName().equalsIgnoreCase("Transferred") ||
                     payment.getPaymentAllocation().get(0).getPaymentAllocationStatus().getName().equalsIgnoreCase("Unidentified")))
@@ -74,12 +77,6 @@ public class BulkScanningReportMapper {
             .collect(Collectors.toList());
 
         underOverPaymentDtos = payments.stream()
-            /*.filter(payment -> checkPaymentsFromExela(payment.getPaymentLink()))
-            .filter(payment -> checkGroupOutstanding(payment))
-            .filter(payment ->
-                (Optional.ofNullable(payment).isPresent() && Optional.ofNullable(payment.getPaymentAllocation()).isPresent() && payment.getPaymentAllocation().size() > 0 &&
-                    (! payment.getPaymentAllocation().get(0).getPaymentAllocationStatus().getName().equalsIgnoreCase("Transferred") ||
-                    ! payment.getPaymentAllocation().get(0).getPaymentAllocationStatus().getName().equalsIgnoreCase("Unidentified"))))*/
             .map(payment -> {
                 BulkScanningUnderOverPaymentDto bulkScanningUnderOverPaymentDto = new BulkScanningUnderOverPaymentDto();
 

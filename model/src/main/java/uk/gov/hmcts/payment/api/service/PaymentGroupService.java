@@ -19,4 +19,6 @@ public interface PaymentGroupService<T, ID> {
     T addNewBulkScanPayment(Payment payment, String PaymentGroupReference);
 
     List<T> search(String ccdCaseNumber);
+
+    void addPaymentFeeApportions(Payment payment, List<PaymentFee> fees);
 }

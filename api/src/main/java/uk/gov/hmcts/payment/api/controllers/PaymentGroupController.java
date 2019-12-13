@@ -104,7 +104,7 @@ public class PaymentGroupController {
         @ApiResponse(code = 400, message = "Payment group creation failed")
     })
     @PostMapping(value = "/payment-groups")
-    public ResponseEntity<PaymentGroupDto> addNewFee(@Valid @RequestBody PaymentGroupDto paymentGroupDto) {
+    public ResponseEntity<PaymentGroupDto> addNewFee(@Valid @RequestBody PaymentGroupDto paymentGroupDto) throws CheckDigitException {
 
         String paymentGroupReference = PaymentReference.getInstance().getNext();
 
@@ -122,6 +122,10 @@ public class PaymentGroupController {
             .fees(Lists.newArrayList(feeList))
             .build();
         feeList.stream().forEach(fee -> fee.setPaymentLink(feeLink));
+
+        for(PaymentFee fee : feeList){
+            fee.setReference(referenceUtil.getNext("FEE"));
+        }
 
         PaymentFeeLink paymentFeeLink = paymentGroupService.addNewFeeWithPaymentGroup(feeLink);
 
@@ -198,6 +202,10 @@ public class PaymentGroupController {
             String link = pciPalPaymentService.getPciPalLink(pciPalPaymentRequest, request.getService().name());
             paymentDto = paymentDtoMapper.toPciPalCardPaymentDto(paymentLink, payment, link);
         }
+
+        List<PaymentFee> feeList = request.getFees().stream()
+            .map(paymentGroupDtoMapper::toPaymentFee).collect(Collectors.toList());
+        paymentGroupService.addPaymentFeeApportions(payment, feeList);
 
         return new ResponseEntity<>(paymentDto, HttpStatus.CREATED);
     }

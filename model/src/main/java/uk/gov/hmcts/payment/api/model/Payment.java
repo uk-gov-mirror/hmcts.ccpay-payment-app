@@ -8,6 +8,7 @@ import javax.persistence.*;
 import java.math.BigDecimal;
 import java.util.Date;
 import java.util.List;
+import java.util.Set;
 
 @Entity
 @Data
@@ -137,5 +138,8 @@ public class Payment {
 
     @Column(name = "payer_name")
     private String payerName;
+
+    @OneToMany(mappedBy = "payment")
+    private Set<PaymentFeeApportion> paymentFeeApportions;
 
 }

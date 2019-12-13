@@ -42,3 +42,54 @@ databaseChangeLog:
                   name: fee_amount
                   type: numeric(19, 2)
             tableName: fee
+  - changeSet:
+      id: 1554989041418-7
+      author: ayan
+      changes:
+        - addColumn:
+            columns:
+              - column:
+                  name: apportion_amount
+                  type: numeric(19, 2)
+            tableName: fee
+  - changeSet:
+      id: 1554989041418-6
+      author: ayan
+      changes:
+        - createTable:
+            tableName: payment_fee_apportion
+            columns:
+              - column:
+                  name: id
+                  type: INT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: payment_id
+                  type: INT
+              - column:
+                  name: fee_id
+                  type: INT
+              - column:
+                  name: payment_reference
+                  type: varchar(255)
+              - column:
+                  name: fee_reference
+                  type: varchar(255)
+              - column:
+                  name: apportion_amount
+                  type: numeric(19, 2)
+              - column:
+                  name: fee_amount
+                  type: numeric(19, 2)
+              - column:
+                  name: payment_amount
+                  type: numeric(19, 2)
+              - column:
+                  name: ccd_case_number
+                  type: varchar(255)
+              - column:
+                  name: date_created
+                  type: TIMESTAMP WITHOUT TIME ZONE

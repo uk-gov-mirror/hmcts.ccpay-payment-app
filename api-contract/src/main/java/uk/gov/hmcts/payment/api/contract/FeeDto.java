@@ -60,4 +60,7 @@ public class FeeDto {
 
     private String caseReference;
 
+    @Digits(integer = 10, fraction = 2, message = "Fee Apportion amount cannot have more than 2 decimal places")
+    private BigDecimal apportionAmount;
+
 }

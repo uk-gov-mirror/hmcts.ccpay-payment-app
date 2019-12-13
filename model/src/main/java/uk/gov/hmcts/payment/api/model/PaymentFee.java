@@ -8,6 +8,7 @@ import lombok.NoArgsConstructor;
 import javax.persistence.*;
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Set;
 
 @Entity
 @Data
@@ -51,4 +52,10 @@ public class PaymentFee {
     @OneToMany(cascade = CascadeType.ALL)
     @JoinColumn(name = "fee_id", referencedColumnName = "id")
     private List<Remission> remissions;
+
+    @OneToMany(mappedBy = "fee")
+    private Set<PaymentFeeApportion> paymentFeeApportions;
+
+    @Column(name = "apportion_amount")
+    private BigDecimal apportionAmount;
 }

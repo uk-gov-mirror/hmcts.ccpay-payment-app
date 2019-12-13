@@ -25,9 +25,15 @@ public class PaymentGroupServiceImpl implements PaymentGroupService<PaymentFeeLi
 
     private final PaymentStatusRepository paymentStatusRepository;
 
-    public PaymentGroupServiceImpl(PaymentFeeLinkRepository paymentFeeLinkRepository, PaymentStatusRepository paymentStatusRepository) {
+    private final PaymentFeeRelRepository paymentFeeRelRepository;
+
+    private final PaymentFeeRepository paymentFeeRepository;
+
+    public PaymentGroupServiceImpl(PaymentFeeLinkRepository paymentFeeLinkRepository, PaymentStatusRepository paymentStatusRepository, PaymentFeeRelRepository paymentFeeRelRepository, PaymentFeeRepository paymentFeeRepository) {
         this.paymentFeeLinkRepository = paymentFeeLinkRepository;
         this.paymentStatusRepository = paymentStatusRepository;
+        this.paymentFeeRelRepository = paymentFeeRelRepository;
+        this.paymentFeeRepository = paymentFeeRepository;
     }
 
     @Override
@@ -118,6 +124,25 @@ public class PaymentGroupServiceImpl implements PaymentGroupService<PaymentFeeLi
 
         return paymentFeeLinks;
 
+    }
+
+    @Override
+    public void addPaymentFeeApportions(Payment payment, List<PaymentFee> fees) {
+        if(Optional.ofNullable(fees).isPresent() && fees.size() > 0){
+            fees.stream()
+                .filter(fee -> Objects.nonNull(fee.getReference()))
+                .filter(fee -> paymentFeeRepository.findByReference(fee.getReference()).isPresent())
+                .forEach(fee -> paymentFeeRelRepository.save(PaymentFeeApportion.paymentFeeApportionWith()
+                                        .fee(paymentFeeRepository.findByReference(fee.getReference()).get())
+                                        .feeReference(fee.getReference())
+                                        .feeAmount(fee.getNetAmount())
+                                        .apportionAmount(fee.getApportionAmount())
+                                        .ccdCaseNumber(fee.getCcdCaseNumber())
+                                        .payment(payment)
+                                        .paymentReference(payment.getReference())
+                                        .paymentAmount(payment.getAmount())
+                                        .build()));
+        }
     }
 
     private static Specification findPaymentGroupsWithMatchingCriteria(String ccdCaseNumber, String table) {

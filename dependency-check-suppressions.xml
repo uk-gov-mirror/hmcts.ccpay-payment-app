@@ -203,5 +203,8 @@
         <cve>CVE-2019-12418</cve>
         <cve>CVE-2019-17563</cve>
     </suppress>
-
+    <suppress>
+        <notes>CVE-2019-20330: Jackson databind jar temp supression to get build through</notes>
+        <cve>CVE-2019-20330</cve>
+    </suppress>
 </suppressions>

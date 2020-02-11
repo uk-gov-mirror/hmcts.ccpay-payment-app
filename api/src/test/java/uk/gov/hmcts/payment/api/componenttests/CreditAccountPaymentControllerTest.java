@@ -21,6 +21,7 @@ import uk.gov.hmcts.payment.api.contract.CreditAccountPaymentRequest;
 import uk.gov.hmcts.payment.api.contract.FeeDto;
 import uk.gov.hmcts.payment.api.contract.PaymentDto;
 import uk.gov.hmcts.payment.api.dto.AccountDto;
+import uk.gov.hmcts.payment.api.dto.PaymentGroupDto;
 import uk.gov.hmcts.payment.api.exception.AccountServiceUnavailableException;
 import uk.gov.hmcts.payment.api.model.Payment;
 import uk.gov.hmcts.payment.api.model.Payment2Repository;
@@ -42,6 +43,7 @@ import java.util.Arrays;
 import java.util.Date;
 
 import static java.lang.String.format;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
@@ -647,7 +649,22 @@ public class CreditAccountPaymentControllerTest extends PaymentsDataUtil {
 
         paymentDto = objectMapper.readValue(result.getResponse().getContentAsByteArray(), PaymentDto.class);
         assertNotNull(paymentDto);
+
         verify(accountService, times(2)).retrieve(request.getAccountNumber());
+
+        // Retrieve payment by payment group reference
+        MvcResult result3 = restActions
+            .get("/payment-groups/" + paymentDto.getPaymentGroupReference())
+            .andExpect(status().isOk())
+            .andReturn();
+
+        PaymentGroupDto paymentGroupDto = objectMapper.readValue(result3.getResponse().getContentAsByteArray(), PaymentGroupDto.class);
+        PaymentDto paymentDtoForCredit = paymentGroupDto.getPayments().get(0);
+
+        assertThat(paymentDtoForCredit.getAccountNumber()).isEqualToIgnoringCase("AC101010");
+        assertThat(paymentDtoForCredit.getCustomerReference()).isEqualToIgnoringCase("CUST101");
+        assertThat(paymentDtoForCredit.getOrganisationName()).isEqualToIgnoringCase("ORG101");
+
     }
 
     private void setCreditAccountPaymentLiberataCheckFeature(boolean enabled) throws Exception {

@@ -660,7 +660,7 @@ public class CreditAccountPaymentControllerTest extends PaymentsDataUtil {
 
         PaymentGroupDto paymentGroupDto = objectMapper.readValue(result3.getResponse().getContentAsByteArray(), PaymentGroupDto.class);
         PaymentDto paymentDtoForCredit = paymentGroupDto.getPayments().get(0);
-
+        //PAY-2856-Missing PBA details changes
         assertThat(paymentDtoForCredit.getAccountNumber()).isEqualToIgnoringCase("AC101010");
         assertThat(paymentDtoForCredit.getCustomerReference()).isEqualToIgnoringCase("CUST101");
         assertThat(paymentDtoForCredit.getOrganisationName()).isEqualToIgnoringCase("ORG101");

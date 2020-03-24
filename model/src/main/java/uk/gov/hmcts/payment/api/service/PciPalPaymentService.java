@@ -130,5 +130,7 @@ public class PciPalPaymentService implements DelegatingPaymentService<PciPalPaym
         T get() throws IOException, URISyntaxException;
     }
 
+    @Override
+    public void cancel(String paymentReference) {}
 
 }

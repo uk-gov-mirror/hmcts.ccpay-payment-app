@@ -69,6 +69,17 @@ public class ServiceAndUserAuthFilterTest {
 
     @SuppressWarnings("unchecked")
     @Test
+    public void shouldReturn200ResponseWhenRoleMatches1() throws Exception {
+        request.setRequestURI("/bulk-scan-payments/");
+        when(SecurityContextHolder.getContext().getAuthentication()).thenReturn(getJWTAuthenticationTokenBasedOnRoles("payments"));
+        when(securityUtils.getUserInfo()).thenReturn(getUserInfoBasedOnUID_Roles("user123",""));
+
+        filter.doFilterInternal(request, response, filterChain);
+        assertThat(response.getStatus()).isEqualTo(HttpStatus.FORBIDDEN.value());
+    }
+
+    @SuppressWarnings("unchecked")
+    @Test
     public void shouldReturn403ResponseWhenRolesdontMatche() throws Exception {
         request.setRequestURI("/bulk-scan-payments/");
         when(SecurityContextHolder.getContext().getAuthentication()).thenReturn(getJWTAuthenticationTokenBasedOnRoles("payments"));
@@ -101,6 +112,8 @@ public class ServiceAndUserAuthFilterTest {
         Assert.assertTrue((StringUtils.containsIgnoreCase(((MockHttpServletResponse)response).getErrorMessage(),
             "Access Denied")));
     }
+
+
 
     public static UserInfo getUserInfoBasedOnUID_Roles(String UID, String roles){
         return UserInfo.builder()

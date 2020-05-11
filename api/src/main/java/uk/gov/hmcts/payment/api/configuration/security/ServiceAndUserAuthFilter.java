@@ -58,11 +58,11 @@ public class ServiceAndUserAuthFilter extends OncePerRequestFilter {
         if (!authorizedRoles.isEmpty() && Collections.disjoint(authorizedRoles, userInfo.getRoles())) {
             throw new UnauthorizedException("Unauthorised role in the path");
         }
-/*        userIdOptional.ifPresent(resourceUserId -> {
+       userIdOptional.ifPresent(resourceUserId -> {
             if (!resourceUserId.equalsIgnoreCase(userInfo.getUid())) {
                 throw new UnauthorizedException("Unauthorised userId in the path");
             }
-        });*/
+        });
     }
 
 }

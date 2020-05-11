@@ -61,12 +61,12 @@ public class SecurityUtils {
 
     @SuppressWarnings("unchecked")
     public static List<GrantedAuthority> extractAuthorityFromClaims(Map<String, Object> claims) {
-
+/*
         if (!Optional.ofNullable(claims).isPresent() && !Optional.ofNullable(claims.get("roles")).isPresent()){
             throw new InsufficientAuthenticationException("No roles can be extracted from claims " +
                 "most probably due to insufficient scopes provided");
         }
-
+*/
 
         return ((List<String>) claims.get("roles"))
             .stream()

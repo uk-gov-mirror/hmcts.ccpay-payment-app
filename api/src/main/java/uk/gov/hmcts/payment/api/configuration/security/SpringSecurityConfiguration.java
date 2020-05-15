@@ -130,7 +130,7 @@ public class SpringSecurityConfiguration {
         @Override
         @SuppressWarnings(value = "SPRING_CSRF_PROTECTION_DISABLED", justification = "It's safe to disable CSRF protection as application is not being hit directly from the browser")
         protected void configure(HttpSecurity http) throws Exception {
-            try {
+            //try {
                 http.addFilterBefore(serviceAuthFilter, BearerTokenAuthenticationFilter.class)
                     .addFilterBefore(serviceAndUserAuthFilter, BearerTokenAuthenticationFilter.class)
                     .addFilterAfter(servicePaymentFilter,ServiceAuthFilter.class)
@@ -155,11 +155,11 @@ public class SpringSecurityConfiguration {
                     .and()
                     .and()
                     .oauth2Client();
-            }
+            /*}
             catch(Exception e)
             {
                 LOG.info(String.format("Error in InternalApiSecurityConfigurationAdapter:{}"), e);
-            }
+            }*/
         }
 
         @Bean

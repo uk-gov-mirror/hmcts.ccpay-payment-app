@@ -40,7 +40,7 @@ public class ServiceAndUserAuthFilter extends OncePerRequestFilter {
 
         Collection<String> authorizedRoles = authorizedRolesExtractor.apply(request);
         Optional<String> userIdOptional = userIdExtractor.apply(request);
-
+        LOG.info("authorizedRoles", authorizedRoles);
         if (securityUtils.isAuthenticated() && (!authorizedRoles.isEmpty() || userIdOptional.isPresent())) {
             try {
                 verifyRoleAndUserId(authorizedRoles, userIdOptional);
@@ -54,6 +54,7 @@ public class ServiceAndUserAuthFilter extends OncePerRequestFilter {
     }
 
     private void verifyRoleAndUserId(Collection<String> authorizedRoles, Optional<String> userIdOptional) {
+        LOG.info("Inside verifyRoleAndUserId");
         UserInfo userInfo = securityUtils.getUserInfo();
         if (!authorizedRoles.isEmpty() && Collections.disjoint(authorizedRoles, userInfo.getRoles())) {
             throw new UnauthorizedException("Unauthorised role in the path");

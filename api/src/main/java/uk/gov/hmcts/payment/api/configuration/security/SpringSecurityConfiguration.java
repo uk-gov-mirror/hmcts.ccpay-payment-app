@@ -167,7 +167,7 @@ public class SpringSecurityConfiguration {
         JwtDecoder jwtDecoder() {
             NimbusJwtDecoder jwtDecoder = (NimbusJwtDecoder)
                 JwtDecoders.fromOidcIssuerLocation(issuerUri);
-
+            LOG.info("allowedAudiences", allowedAudiences);
             OAuth2TokenValidator<Jwt> audienceValidator = new AudienceValidator(Arrays.asList(allowedAudiences));
 
             OAuth2TokenValidator<Jwt> withTimestamp = new JwtTimestampValidator();

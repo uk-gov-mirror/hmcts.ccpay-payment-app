@@ -132,7 +132,7 @@ public class SpringSecurityConfiguration {
         protected void configure(HttpSecurity http) throws Exception {
             //try {
                 http.addFilterBefore(serviceAuthFilter, BearerTokenAuthenticationFilter.class)
-                    .addFilterBefore(serviceAndUserAuthFilter, BearerTokenAuthenticationFilter.class)
+                    .addFilterAfter(serviceAndUserAuthFilter, BearerTokenAuthenticationFilter.class)
                     .addFilterAfter(servicePaymentFilter,ServiceAuthFilter.class)
                     .sessionManagement().sessionCreationPolicy(STATELESS).and()
                     .csrf().disable()

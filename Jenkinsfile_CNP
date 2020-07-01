@@ -45,7 +45,6 @@ withPipeline(type, product, app) {
     loadVaultSecrets(secrets)
     enableDbMigration('ccpay') // for liquibase update
     //enableDockerBuild()
-    //installCharts()
     enableSlackNotifications('#cc-payments-tech')
     disableLegacyDeployment()
 }

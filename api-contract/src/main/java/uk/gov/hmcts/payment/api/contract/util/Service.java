@@ -1,5 +1,7 @@
 package uk.gov.hmcts.payment.api.contract.util;
 
+
+
 public enum Service {
     CMC("Civil Money Claims"),
     DIVORCE("Divorce"),
@@ -19,3 +21,5 @@ public enum Service {
         return this.name;
     }
 }
+
+

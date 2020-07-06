@@ -55,3 +55,11 @@ variable telephony_api_gateway_certificate_thumbprints {
   type = "list"
   default = []
 }
+
+variable sku_name {
+  default = "GP_Gen5_2"
+}
+
+variable "sku_capacity" {
+  default = "2"
+}

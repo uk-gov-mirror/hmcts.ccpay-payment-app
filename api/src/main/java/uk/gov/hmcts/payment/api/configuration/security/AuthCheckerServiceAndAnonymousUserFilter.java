@@ -1,6 +1,8 @@
 package uk.gov.hmcts.payment.api.configuration.security;
 
 import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.security.web.authentication.preauth.AbstractPreAuthenticatedProcessingFilter;
 import uk.gov.hmcts.reform.auth.checker.core.RequestAuthorizer;
 import uk.gov.hmcts.reform.auth.checker.core.exceptions.AuthCheckerException;
@@ -19,7 +21,7 @@ import java.util.Set;
 @Slf4j
 public class AuthCheckerServiceAndAnonymousUserFilter extends AbstractPreAuthenticatedProcessingFilter {
 
-
+    private static final Logger LOG = LoggerFactory.getLogger(AuthCheckerServiceAndAnonymousUserFilter.class);
     private final RequestAuthorizer<Service> serviceRequestAuthorizer;
     private final RequestAuthorizer<User> userRequestAuthorizer;
     private static final Set anonymousRole = new HashSet<String>(Arrays.asList("ROLE_ANONYMOUS"));
@@ -42,6 +44,10 @@ public class AuthCheckerServiceAndAnonymousUserFilter extends AbstractPreAuthent
 
         if (user == null)
             return null;
+
+        user.getRoles().stream().forEach(u -> {
+            LOG.info("User Role :-> " + u);
+        });
 
         return new ServiceAndUserPair(service, user);
     }

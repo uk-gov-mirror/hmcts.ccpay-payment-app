@@ -46,7 +46,7 @@ public class AuthCheckerServiceAndAnonymousUserFilter extends AbstractPreAuthent
             return null;
 
         user.getRoles().stream().forEach(u -> {
-            LOG.info("User Role :-> " + u);
+            LOG.info("User Role : {} ", u);
         });
 
         return new ServiceAndUserPair(service, user);

@@ -646,6 +646,37 @@ public class CreditAccountPaymentControllerTest extends PaymentsDataUtil {
     }
 
     @Test
+    public void givenLiberataCheckOnAndCheckLiberataAccountForAllSericesOffThenOnlyIACTriggersLiberataCheck() throws Exception {
+        setCreditAccountPaymentLiberataCheckFeature(true);
+        setCheckLiberataAccountForAllServices(false);
+
+        CreditAccountPaymentRequest request = objectMapper.readValue(creditAccountPaymentRequestJsonWithIACJson().getBytes(), CreditAccountPaymentRequest.class);
+        AccountDto accountActiveDto = new AccountDto(request.getAccountNumber(), "accountName",
+            new BigDecimal(1000), new BigDecimal(1000), AccountStatus.ACTIVE, new Date());
+        Mockito.when(accountService.retrieve(request.getAccountNumber())).thenReturn(accountActiveDto);
+
+        MvcResult result = restActions
+            .post("/credit-account-payments", request)
+            .andExpect(status().isCreated())
+            .andReturn();
+
+        PaymentDto paymentDto = objectMapper.readValue(result.getResponse().getContentAsByteArray(), PaymentDto.class);
+        assertNotNull(paymentDto);
+        verify(accountService, times(1)).retrieve(request.getAccountNumber());
+
+        request = objectMapper.readValue(creditAccountPaymentRequestJsonWithProbateJson().getBytes(), CreditAccountPaymentRequest.class);
+        result = restActions
+            .post("/credit-account-payments", request)
+            .andExpect(status().isCreated())
+            .andReturn();
+
+        paymentDto = objectMapper.readValue(result.getResponse().getContentAsByteArray(), PaymentDto.class);
+        assertNotNull(paymentDto);
+        verify(accountService, times(1)).retrieve(request.getAccountNumber());
+    }
+
+
+    @Test
     public void givenLiberataCheckOffAndCheckLiberataAccountForAllSericesOnThenAllServicesTriggerLiberataCheck() throws Exception {
         setCreditAccountPaymentLiberataCheckFeature(false);
         setCheckLiberataAccountForAllServices(true);
@@ -720,6 +751,36 @@ public class CreditAccountPaymentControllerTest extends PaymentsDataUtil {
     }
 
     @Test
+    public void givenLiberataCheckOffAndCheckLiberataAccountForAllServicesOnThenAllServicesTriggerLiberataCheck_IAC() throws Exception {
+        setCreditAccountPaymentLiberataCheckFeature(false);
+        setCheckLiberataAccountForAllServices(true);
+
+        CreditAccountPaymentRequest request = objectMapper.readValue(creditAccountPaymentRequestJsonWithIAC_Json().getBytes(), CreditAccountPaymentRequest.class);
+        AccountDto accountActiveDto = new AccountDto(request.getAccountNumber(), "accountName",
+            new BigDecimal(1000), new BigDecimal(1000), AccountStatus.ACTIVE, new Date());
+        Mockito.when(accountService.retrieve(request.getAccountNumber())).thenReturn(accountActiveDto);
+
+        MvcResult result = restActions
+            .post("/credit-account-payments", request)
+            .andExpect(status().isCreated())
+            .andReturn();
+
+        PaymentDto paymentDto = objectMapper.readValue(result.getResponse().getContentAsByteArray(), PaymentDto.class);
+        assertNotNull(paymentDto);
+        verify(accountService, times(1)).retrieve(request.getAccountNumber());
+
+        request = objectMapper.readValue(creditAccountPaymentRequestJsonWithProbateJson().getBytes(), CreditAccountPaymentRequest.class);
+        result = restActions
+            .post("/credit-account-payments", request)
+            .andExpect(status().isCreated())
+            .andReturn();
+
+        paymentDto = objectMapper.readValue(result.getResponse().getContentAsByteArray(), PaymentDto.class);
+        assertNotNull(paymentDto);
+        verify(accountService, times(2)).retrieve(request.getAccountNumber());
+    }
+
+    @Test
     public void createCreditAccountPaymentTest_FPLService() throws Exception {
         CreditAccountPaymentRequest request = objectMapper.readValue(creditAccountPaymentRequestJsonWithFPLJson().getBytes(), CreditAccountPaymentRequest.class);
         AccountDto accountActiveDto = new AccountDto(request.getAccountNumber(), "accountName",
@@ -748,198 +809,17 @@ public class CreditAccountPaymentControllerTest extends PaymentsDataUtil {
     }
 
     @Test
-    public void createCreditAccountPaymentWithMultipleFee_ExactPayment() throws Exception {
-
-        setCreditAccountPaymentLiberataCheckFeature(true);
-
-        List<FeeDto> fees = new ArrayList<>();
-        fees.add(FeeDto.feeDtoWith().code("FEE0271").ccdCaseNumber("9999888877776666").feeAmount(new BigDecimal(20))
-            .volume(1).version("1").calculatedAmount(new BigDecimal(20)).build());
-        fees.add(FeeDto.feeDtoWith().code("FEE0271").ccdCaseNumber("9999888877776666").feeAmount(new BigDecimal(40))
-            .volume(1).version("1").calculatedAmount(new BigDecimal(40)).build());
-        fees.add(FeeDto.feeDtoWith().code("FEE0271").ccdCaseNumber("9999888877776666").feeAmount(new BigDecimal(60))
-            .volume(1).version("1").calculatedAmount(new BigDecimal(60)).build());
-
-        CreditAccountPaymentRequest request = CreditAccountPaymentRequest.createCreditAccountPaymentRequestDtoWith()
-            .amount(new BigDecimal("120"))
-            .description("description")
-            .caseReference("telRefNumber")
-            .ccdCaseNumber("9999888877776666")
-            .service(Service.PROBATE)
-            .currency(CurrencyCode.GBP)
-            .siteId("AA08")
-            .customerReference("CUST101")
-            .organisationName("ORG101")
-            .accountNumber("AC101010")
-            .fees(fees)
-            .build();
-
+    public void createCreditAccountPaymentTest_IACService_InvalidSiteId() throws Exception {
+        CreditAccountPaymentRequest request = objectMapper.readValue(creditAccountPaymentRequestJsonWithIACLJsonInvalidSiteId().getBytes(), CreditAccountPaymentRequest.class);
         AccountDto accountActiveDto = new AccountDto(request.getAccountNumber(), "accountName",
             new BigDecimal(1000), new BigDecimal(1000), AccountStatus.ACTIVE, new Date());
         Mockito.when(accountService.retrieve(request.getAccountNumber())).thenReturn(accountActiveDto);
 
-        MvcResult result = restActions
-            .post("/credit-account-payments", request)
-            .andExpect(status().isCreated())
-            .andReturn();
-
-        PaymentDto paymentDto = objectMapper.readValue(result.getResponse().getContentAsByteArray(), PaymentDto.class);
-
-        List<PaymentFee> savedfees = db.findByReference(paymentDto.getPaymentGroupReference()).getFees();
-
-        assertEquals(new BigDecimal(20), savedfees.get(0).getAllocatedAmount());
-        assertEquals(new BigDecimal(40), savedfees.get(1).getAllocatedAmount());
-        assertEquals(new BigDecimal(60), savedfees.get(2).getAllocatedAmount());
-        assertEquals("Y", savedfees.get(0).getIsFullyApportioned());
-        assertEquals("Y", savedfees.get(1).getIsFullyApportioned());
-        assertEquals("Y", savedfees.get(2).getIsFullyApportioned());
-    }
-
-    @Test
-    public void createCreditAccountPaymentWithMultipleFee_ShortfallPayment() throws Exception {
-
         setCreditAccountPaymentLiberataCheckFeature(true);
 
-        List<FeeDto> fees = new ArrayList<>();
-        fees.add(FeeDto.feeDtoWith().code("FEE0271").ccdCaseNumber("9999888877776666").feeAmount(new BigDecimal(30))
-            .volume(1).version("1").calculatedAmount(new BigDecimal(30)).build());
-        fees.add(FeeDto.feeDtoWith().code("FEE0271").ccdCaseNumber("9999888877776666").feeAmount(new BigDecimal(40))
-            .volume(1).version("1").calculatedAmount(new BigDecimal(40)).build());
-        fees.add(FeeDto.feeDtoWith().code("FEE0271").ccdCaseNumber("9999888877776666").feeAmount(new BigDecimal(60))
-            .volume(1).version("1").calculatedAmount(new BigDecimal(60)).build());
-
-        CreditAccountPaymentRequest request = CreditAccountPaymentRequest.createCreditAccountPaymentRequestDtoWith()
-            .amount(new BigDecimal("120"))
-            .description("description")
-            .caseReference("telRefNumber")
-            .ccdCaseNumber("9999888877776666")
-            .service(Service.PROBATE)
-            .currency(CurrencyCode.GBP)
-            .siteId("AA08")
-            .fees(fees)
-            .customerReference("CUST101")
-            .organisationName("ORG101")
-            .accountNumber("AC101010")
-            .build();
-
-        AccountDto accountActiveDto = new AccountDto(request.getAccountNumber(), "accountName",
-            new BigDecimal(1000), new BigDecimal(1000), AccountStatus.ACTIVE, new Date());
-        Mockito.when(accountService.retrieve(request.getAccountNumber())).thenReturn(accountActiveDto);
-
-        MvcResult result = restActions
-            .post("/credit-account-payments", request)
-            .andExpect(status().isCreated())
-            .andReturn();
-
-        PaymentDto paymentDto = objectMapper.readValue(result.getResponse().getContentAsByteArray(), PaymentDto.class);
-
-        List<PaymentFee> savedfees = db.findByReference(paymentDto.getPaymentGroupReference()).getFees();
-
-        assertEquals(new BigDecimal(30), savedfees.get(0).getAllocatedAmount());
-        assertEquals(new BigDecimal(40), savedfees.get(1).getAllocatedAmount());
-        assertEquals(new BigDecimal(50), savedfees.get(2).getAllocatedAmount());
-        assertEquals("Y", savedfees.get(0).getIsFullyApportioned());
-        assertEquals("Y", savedfees.get(1).getIsFullyApportioned());
-        assertEquals("N", savedfees.get(2).getIsFullyApportioned());
-    }
-
-    @Test
-    public void createCreditAccountPaymentWithMultipleFee_SurplusPayment() throws Exception {
-
-        setCreditAccountPaymentLiberataCheckFeature(true);
-
-        List<FeeDto> fees = new ArrayList<>();
-        fees.add(FeeDto.feeDtoWith().code("FEE0271").ccdCaseNumber("9999888877776666").feeAmount(new BigDecimal(10))
-            .volume(1).version("1").calculatedAmount(new BigDecimal(10)).build());
-        fees.add(FeeDto.feeDtoWith().code("FEE0271").ccdCaseNumber("9999888877776666").feeAmount(new BigDecimal(40))
-            .volume(1).version("1").calculatedAmount(new BigDecimal(40)).build());
-        fees.add(FeeDto.feeDtoWith().code("FEE0271").ccdCaseNumber("9999888877776666").feeAmount(new BigDecimal(60))
-            .volume(1).version("1").calculatedAmount(new BigDecimal(60)).build());
-
-        CreditAccountPaymentRequest request = CreditAccountPaymentRequest.createCreditAccountPaymentRequestDtoWith()
-            .amount(new BigDecimal("120"))
-            .description("description")
-            .caseReference("telRefNumber")
-            .ccdCaseNumber("9999888877776666")
-            .service(Service.PROBATE)
-            .currency(CurrencyCode.GBP)
-            .siteId("AA08")
-            .fees(fees)
-            .customerReference("CUST101")
-            .organisationName("ORG101")
-            .accountNumber("AC101010")
-            .build();
-
-        AccountDto accountActiveDto = new AccountDto(request.getAccountNumber(), "accountName",
-            new BigDecimal(1000), new BigDecimal(1000), AccountStatus.ACTIVE, new Date());
-        Mockito.when(accountService.retrieve(request.getAccountNumber())).thenReturn(accountActiveDto);
-
-        MvcResult result = restActions
-            .post("/credit-account-payments", request)
-            .andExpect(status().isCreated())
-            .andReturn();
-
-        PaymentDto paymentDto = objectMapper.readValue(result.getResponse().getContentAsByteArray(), PaymentDto.class);
-
-        List<PaymentFee> savedfees = db.findByReference(paymentDto.getPaymentGroupReference()).getFees();
-
-        assertEquals(new BigDecimal(10), savedfees.get(0).getAllocatedAmount());
-        assertEquals(new BigDecimal(40), savedfees.get(1).getAllocatedAmount());
-        assertEquals(new BigDecimal(70), savedfees.get(2).getAllocatedAmount());
-        assertEquals("Y", savedfees.get(0).getIsFullyApportioned());
-        assertEquals("Y", savedfees.get(1).getIsFullyApportioned());
-        assertEquals("Y", savedfees.get(2).getIsFullyApportioned());
-    }
-
-    @Test
-    public void createCreditAccountPaymentWithMultipleFee_AmountDue() throws Exception {
-
-        setCreditAccountPaymentLiberataCheckFeature(true);
-
-        List<FeeDto> fees = new ArrayList<>();
-        fees.add(FeeDto.feeDtoWith().code("FEE0271").ccdCaseNumber("9999888877776666").feeAmount(new BigDecimal(20))
-            .volume(1).version("1").calculatedAmount(new BigDecimal(20)).build());
-        fees.add(FeeDto.feeDtoWith().code("FEE0271").ccdCaseNumber("9999888877776666").feeAmount(new BigDecimal(40))
-            .volume(1).version("1").calculatedAmount(new BigDecimal(40)).build());
-        fees.add(FeeDto.feeDtoWith().code("FEE0271").ccdCaseNumber("9999888877776666").feeAmount(new BigDecimal(60))
-            .volume(1).version("1").calculatedAmount(new BigDecimal(60)).build());
-
-        CreditAccountPaymentRequest request = CreditAccountPaymentRequest.createCreditAccountPaymentRequestDtoWith()
-            .amount(new BigDecimal("100"))
-            .description("description")
-            .caseReference("telRefNumber")
-            .ccdCaseNumber("9999888877776666")
-            .service(Service.FPL)
-            .currency(CurrencyCode.GBP)
-            .siteId("ABA3")
-            .customerReference("CUST101")
-            .organisationName("ORG101")
-            .accountNumber("AC101010")
-            .fees(fees)
-            .build();
-
-        AccountDto accountActiveDto = new AccountDto(request.getAccountNumber(), "accountName",
-            new BigDecimal(1000), new BigDecimal(1000), AccountStatus.ACTIVE, new Date());
-        Mockito.when(accountService.retrieve(request.getAccountNumber())).thenReturn(accountActiveDto);
-
-        MvcResult result = restActions
-            .post("/credit-account-payments", request)
-            .andExpect(status().isCreated())
-            .andReturn();
-
-        PaymentDto paymentDto = objectMapper.readValue(result.getResponse().getContentAsByteArray(), PaymentDto.class);
-
-        List<PaymentFee> savedfees = db.findByReference(paymentDto.getPaymentGroupReference()).getFees();
-
-        assertEquals(new BigDecimal(20), savedfees.get(0).getAllocatedAmount());
-        assertEquals(new BigDecimal(40), savedfees.get(1).getAllocatedAmount());
-        assertEquals(new BigDecimal(40), savedfees.get(2).getAllocatedAmount());
-        assertEquals("Y", savedfees.get(0).getIsFullyApportioned());
-        assertEquals("Y", savedfees.get(1).getIsFullyApportioned());
-        assertEquals("N", savedfees.get(2).getIsFullyApportioned());
-        assertEquals(BigDecimal.valueOf(0), savedfees.get(0).getAmountDue());
-        assertEquals(BigDecimal.valueOf(0), savedfees.get(1).getAmountDue());
-        assertEquals(BigDecimal.valueOf(20), savedfees.get(2).getAmountDue());
+        restActions
+            .post(format("/credit-account-payments"), request)
+            .andExpect(status().isUnprocessableEntity());
     }
 
     private void setCreditAccountPaymentLiberataCheckFeature(boolean enabled) throws Exception {
@@ -1159,6 +1039,28 @@ public class CreditAccountPaymentControllerTest extends PaymentsDataUtil {
             "}";
     }
 
+    private String creditAccountPaymentRequestJsonWithIACLJsonInvalidSiteId() {
+        return "{\n" +
+            "  \"amount\": 101.89,\n" +
+            "  \"description\": \"New passport application\",\n" +
+            "  \"ccd_case_number\": \"CCD101\",\n" +
+            "  \"case_reference\": \"12345\",\n" +
+            "  \"service\": \"IAC\",\n" +
+            "  \"currency\": \"GBP\",\n" +
+            "  \"site_id\": \"BFA0\",\n" +
+            "  \"customer_reference\": \"CUST101\",\n" +
+            "  \"organisation_name\": \"ORG101\",\n" +
+            "  \"account_number\": \"AC101010\",\n" +
+            "  \"fees\": [\n" +
+            "    {\n" +
+            "      \"calculated_amount\": 101.89,\n" +
+            "      \"code\": \"X0101\",\n" +
+            "      \"version\": \"1\"\n" +
+            "    }\n" +
+            "  ]\n" +
+            "}";
+    }
+
     private String creditAccountPaymentRequestJsonWithFPLAJson() {
         return "{\n" +
             "  \"amount\": 101.89,\n" +
@@ -1168,6 +1070,51 @@ public class CreditAccountPaymentControllerTest extends PaymentsDataUtil {
             "  \"service\": \"FPL\",\n" +
             "  \"currency\": \"GBP\",\n" +
             "  \"site_id\": \"ABA3\",\n" +
+            "  \"customer_reference\": \"CUST101\",\n" +
+            "  \"organisation_name\": \"ORG101\",\n" +
+            "  \"account_number\": \"AC101010\",\n" +
+            "  \"fees\": [\n" +
+            "    {\n" +
+            "      \"calculated_amount\": 101.89,\n" +
+            "      \"code\": \"X0101\",\n" +
+            "      \"version\": \"1\"\n" +
+            "    }\n" +
+            "  ]\n" +
+            "}";
+    }
+
+
+    private String creditAccountPaymentRequestJsonWithIAC_Json() {
+        return "{\n" +
+            "  \"amount\": 101.89,\n" +
+            "  \"description\": \"New passport application\",\n" +
+            "  \"ccd_case_number\": \"CCD101\",\n" +
+            "  \"case_reference\": \"12345\",\n" +
+            "  \"service\": \"IAC\",\n" +
+            "  \"currency\": \"GBP\",\n" +
+            "  \"site_id\": \"BFA1\",\n" +
+            "  \"customer_reference\": \"CUST101\",\n" +
+            "  \"organisation_name\": \"ORG101\",\n" +
+            "  \"account_number\": \"AC101010\",\n" +
+            "  \"fees\": [\n" +
+            "    {\n" +
+            "      \"calculated_amount\": 101.89,\n" +
+            "      \"code\": \"X0101\",\n" +
+            "      \"version\": \"1\"\n" +
+            "    }\n" +
+            "  ]\n" +
+            "}";
+    }
+
+    private String creditAccountPaymentRequestJsonWithIACJson() {
+        return "{\n" +
+            "  \"amount\": 101.89,\n" +
+            "  \"description\": \"New passport application\",\n" +
+            "  \"ccd_case_number\": \"CCD101\",\n" +
+            "  \"case_reference\": \"12345\",\n" +
+            "  \"service\": \"IAC\",\n" +
+            "  \"currency\": \"GBP\",\n" +
+            "  \"site_id\": \"BFA1\",\n" +
             "  \"customer_reference\": \"CUST101\",\n" +
             "  \"organisation_name\": \"ORG101\",\n" +
             "  \"account_number\": \"AC101010\",\n" +

@@ -54,7 +54,7 @@ public class FeePayApportionController {
     @GetMapping(value = "/payment-groups/fee-pay-apportion/{paymentreference}")
     public ResponseEntity<PaymentGroupDto> retrieveApportionDetails(@PathVariable("paymentreference") String paymentReference) {
 
-        LOG.info("Apportionment Details to be retrieved by Payment Reference : {}", paymentReference);
+        LOG.info("Apportionment Details to be retrieved by Payment Reference");
         PaymentFeeLink paymentFeeLink = paymentService.retrieve(paymentReference);
 
         Optional<Payment> payment = paymentFeeLink.getPayments().stream()
@@ -65,7 +65,7 @@ public class FeePayApportionController {
         {
                 List<FeePayApportion> feePayApportionList = paymentService.findByPaymentId(payment.get().getId());
                 if(feePayApportionList.isEmpty()) {
-                    LOG.info("Apportionment Empty for Payment Reference : {}", paymentReference);
+                    LOG.info("Apportionment Empty for Payment Reference!!!");
                 } else {
                     LOG.info("Count Apportionment for Payment Reference : {}", feePayApportionList.size());
                     feePayApportionList.stream()

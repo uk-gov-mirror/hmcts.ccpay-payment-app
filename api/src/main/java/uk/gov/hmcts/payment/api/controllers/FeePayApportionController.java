@@ -1,6 +1,8 @@
 package uk.gov.hmcts.payment.api.controllers;
 
 import io.swagger.annotations.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
@@ -20,6 +22,8 @@ import java.util.Optional;
 @Api(tags = {"PaymentApportion"})
 @SwaggerDefinition(tags = {@Tag(name = "FeePayApportionController", description = "FeePayApportion REST API")})
 public class FeePayApportionController {
+
+    private static final Logger LOG = LoggerFactory.getLogger(CardPaymentController.class);
 
     private final PaymentService<PaymentFeeLink, String> paymentService;
 
@@ -50,6 +54,7 @@ public class FeePayApportionController {
     @GetMapping(value = "/payment-groups/fee-pay-apportion/{paymentreference}")
     public ResponseEntity<PaymentGroupDto> retrieveApportionDetails(@PathVariable("paymentreference") String paymentReference) {
 
+        LOG.info("Apportionment Details to be retrieved by Payment Reference : {}", paymentReference);
         PaymentFeeLink paymentFeeLink = paymentService.retrieve(paymentReference);
 
         Optional<Payment> payment = paymentFeeLink.getPayments().stream()
@@ -59,18 +64,22 @@ public class FeePayApportionController {
             payment.get().getDateCreated().equals(dateFormatter.parseDate(apportionLiveDate)))))
         {
                 List<FeePayApportion> feePayApportionList = paymentService.findByPaymentId(payment.get().getId());
-                feePayApportionList.stream()
-                    .forEach(feePayApportion -> {
-                        feeList.stream()
-                            .forEach(paymentFee -> {
-                                if (feePayApportion.getFeeId().equals(paymentFee.getId())) {
-                                    PaymentFee fee = paymentFeeRepository.findById(feePayApportion.getFeeId()).get();
-                                    fee.setApportionAmount(feePayApportion.getApportionAmount());
-                                }
-                            });
-                    });
-                paymentFeeLink.setFees(feeList);
-
+                if(feePayApportionList.isEmpty()) {
+                    LOG.info("Apportionment Empty for Payment Reference : {}", paymentReference);
+                } else {
+                    LOG.info("Count Apportionment for Payment Reference : {}", feePayApportionList.size());
+                    feePayApportionList.stream()
+                        .forEach(feePayApportion -> {
+                            feeList.stream()
+                                .forEach(paymentFee -> {
+                                    if (feePayApportion.getFeeId().equals(paymentFee.getId())) {
+                                        PaymentFee fee = paymentFeeRepository.findById(feePayApportion.getFeeId()).get();
+                                        fee.setApportionAmount(feePayApportion.getApportionAmount());
+                                    }
+                                });
+                        });
+                    paymentFeeLink.setFees(feeList);
+                }
     }
         return new ResponseEntity<>(paymentGroupDtoMapper.toPaymentGroupDto(paymentFeeLink), HttpStatus.OK);
     }

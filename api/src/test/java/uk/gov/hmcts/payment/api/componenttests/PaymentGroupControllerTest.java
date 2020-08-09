@@ -8,12 +8,14 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.context.WebApplicationContext;
+import uk.gov.hmcts.payment.api.configuration.LaunchDarklyFeatureToggler;
 import uk.gov.hmcts.payment.api.contract.CardPaymentRequest;
 import uk.gov.hmcts.payment.api.contract.FeeDto;
 import uk.gov.hmcts.payment.api.contract.PaymentDto;
@@ -82,6 +84,9 @@ public class PaymentGroupControllerTest {
 
     @Autowired
     private PaymentDbBackdoor db;
+
+    @MockBean
+    private LaunchDarklyFeatureToggler featureToggler;
 
     private final static String PAYMENT_REFERENCE_REGEX = "^[RC-]{3}(\\w{4}-){3}(\\w{4})";
 
@@ -234,6 +239,36 @@ public class PaymentGroupControllerTest {
             .fees( Arrays.asList(getNewFee()))
             .build();
 
+        MvcResult result = restActions
+            .post("/payment-groups", request)
+            .andExpect(status().isCreated())
+            .andReturn();
+
+        PaymentGroupDto paymentGroupDto = objectMapper.readValue(result.getResponse().getContentAsByteArray(), PaymentGroupDto.class);
+
+        assertThat(paymentGroupDto).isNotNull();
+        assertThat(paymentGroupDto.getFees().get(0).getCalculatedAmount()).isEqualTo(new BigDecimal("92.19"));
+        assertThat(paymentGroupDto.getFees().get(0).getNetAmount()).isEqualTo(new BigDecimal("92.19"));
+
+        MvcResult result3 = restActions
+            .get("/payment-groups/" + paymentGroupDto.getPaymentGroupReference())
+            .andExpect(status().isOk())
+            .andReturn();
+
+        PaymentGroupDto paymentGroupDto1 = objectMapper.readValue(result3.getResponse().getContentAsByteArray(), PaymentGroupDto.class);
+
+        assertThat(paymentGroupDto1).isNotNull();
+        assertThat(paymentGroupDto1.getFees().size()).isNotZero();
+        assertThat(paymentGroupDto1.getFees().size()).isEqualTo(1);
+
+    }
+
+    @Test
+    public void addNewFeewithPaymentGroupWhenApportionFlagIsOn() throws Exception {
+        PaymentGroupDto request = PaymentGroupDto.paymentGroupDtoWith()
+            .fees( Arrays.asList(getNewFee()))
+            .build();
+        when(featureToggler.getBooleanValue("apportion-feature",false)).thenReturn(true);
         MvcResult result = restActions
             .post("/payment-groups", request)
             .andExpect(status().isCreated())
@@ -1067,6 +1102,8 @@ public class PaymentGroupControllerTest {
 
         String ccdCaseNumber = "1111CC12" + RandomUtils.nextInt();
 
+        when(featureToggler.getBooleanValue("apportion-feature",false)).thenReturn(true);
+
         List<FeeDto> fees = new ArrayList<>();
         fees.add(FeeDto.feeDtoWith().code("FEE0271").ccdCaseNumber(ccdCaseNumber).feeAmount(new BigDecimal(20))
             .volume(1).version("1").calculatedAmount(new BigDecimal(20)).build());
@@ -1111,18 +1148,17 @@ public class PaymentGroupControllerTest {
 
         List<PaymentFee> savedfees = db.findByReference(paymentDto.getPaymentGroupReference()).getFees();
 
-        assertEquals(new BigDecimal(20), savedfees.get(0).getAllocatedAmount());
-        assertEquals(new BigDecimal(40), savedfees.get(1).getAllocatedAmount());
-        assertEquals(new BigDecimal(60), savedfees.get(2).getAllocatedAmount());
-        assertEquals("Y", savedfees.get(0).getIsFullyApportioned());
-        assertEquals("Y", savedfees.get(1).getIsFullyApportioned());
-        assertEquals("Y", savedfees.get(2).getIsFullyApportioned());
+        assertEquals(new BigDecimal(0), savedfees.get(0).getAmountDue());
+        assertEquals(new BigDecimal(0), savedfees.get(1).getAmountDue());
+        assertEquals(new BigDecimal(0), savedfees.get(2).getAmountDue());
     }
 
     @Test
     public void createBulkScanPaymentWithMultipleFee_ShortfallPayment() throws Exception {
 
         String ccdCaseNumber = "1111CC12" + RandomUtils.nextInt();
+
+        when(featureToggler.getBooleanValue("apportion-feature",false)).thenReturn(true);
 
         List<FeeDto> fees = new ArrayList<>();
         fees.add(FeeDto.feeDtoWith().code("FEE0271").ccdCaseNumber(ccdCaseNumber).feeAmount(new BigDecimal(30))
@@ -1168,12 +1204,9 @@ public class PaymentGroupControllerTest {
 
         List<PaymentFee> savedfees = db.findByReference(paymentDto.getPaymentGroupReference()).getFees();
 
-        assertEquals(new BigDecimal(30), savedfees.get(0).getAllocatedAmount());
-        assertEquals(new BigDecimal(40), savedfees.get(1).getAllocatedAmount());
-        assertEquals(new BigDecimal(50), savedfees.get(2).getAllocatedAmount());
-        assertEquals("Y", savedfees.get(0).getIsFullyApportioned());
-        assertEquals("Y", savedfees.get(1).getIsFullyApportioned());
-        assertEquals("N", savedfees.get(2).getIsFullyApportioned());
+        assertEquals(new BigDecimal(0), savedfees.get(0).getAmountDue());
+        assertEquals(new BigDecimal(0), savedfees.get(1).getAmountDue());
+        assertEquals(new BigDecimal(10), savedfees.get(2).getAmountDue());
     }
 
     @Test
@@ -1181,8 +1214,10 @@ public class PaymentGroupControllerTest {
 
         String ccdCaseNumber = "1111CC12" + RandomUtils.nextInt();
 
+        when(featureToggler.getBooleanValue("apportion-feature",false)).thenReturn(true);
+
         List<FeeDto> fees = new ArrayList<>();
-        fees.add(FeeDto.feeDtoWith().code("FEE0271").ccdCaseNumber(ccdCaseNumber).feeAmount(new BigDecimal(20))
+        fees.add(FeeDto.feeDtoWith().code("FEE0271").ccdCaseNumber(ccdCaseNumber).feeAmount(new BigDecimal(10))
             .volume(1).version("1").calculatedAmount(new BigDecimal(10)).build());
         fees.add(FeeDto.feeDtoWith().code("FEE0271").ccdCaseNumber(ccdCaseNumber).feeAmount(new BigDecimal(40))
             .volume(1).version("1").calculatedAmount(new BigDecimal(40)).build());
@@ -1225,12 +1260,9 @@ public class PaymentGroupControllerTest {
 
         List<PaymentFee> savedfees = db.findByReference(paymentDto.getPaymentGroupReference()).getFees();
 
-        assertEquals(new BigDecimal(10), savedfees.get(0).getAllocatedAmount());
-        assertEquals(new BigDecimal(40), savedfees.get(1).getAllocatedAmount());
-        assertEquals(new BigDecimal(70), savedfees.get(2).getAllocatedAmount());
-        assertEquals("Y", savedfees.get(0).getIsFullyApportioned());
-        assertEquals("Y", savedfees.get(1).getIsFullyApportioned());
-        assertEquals("Y", savedfees.get(2).getIsFullyApportioned());
+        assertEquals(new BigDecimal(0), savedfees.get(0).getAmountDue());
+        assertEquals(new BigDecimal(0), savedfees.get(1).getAmountDue());
+        assertEquals(new BigDecimal(-10), savedfees.get(2).getAmountDue());
     }
 
     private CardPaymentRequest getCardPaymentRequest() {
@@ -1271,7 +1303,6 @@ public class PaymentGroupControllerTest {
             .calculatedAmount(new BigDecimal("250.00"))
             .version("1")
             .code("FEE0123")
-            .isFullyApportioned("Y")
             .apportionAmount(new BigDecimal("250.00"))
             .allocatedAmount(new BigDecimal("250.00"))
             .build();

@@ -61,36 +61,26 @@ public class PaymentFee extends Auditable<String> {
     @JoinColumn(name = "fee_id", referencedColumnName = "id")
     private List<Remission> remissions;
 
-    @Column(name = "apportion_amount")
+    @ToString.Exclude
+    @Transient
     private BigDecimal apportionAmount;
 
-    @Column(name = "allocated_amount")
+    @ToString.Exclude
+    @Transient
     private BigDecimal allocatedAmount;
 
     @Column(name = "amount_due")
     private BigDecimal amountDue;
 
-    @Column(name = "is_fully_apportioned")
-    private String isFullyApportioned;
-
     @Column(name = "date_apportioned")
     private Date dateApportioned;
 
-    @CreationTimestamp
     @Column(name = "date_created")
     private Timestamp dateCreated;
 
     @UpdateTimestamp
     @Column(name = "date_updated")
     private Timestamp dateUpdated;
-
-    @ToString.Exclude
-    @Transient
-    private BigDecimal currApportionAmount;
-
-    @ToString.Exclude
-    @Transient
-    private BigDecimal callShortFallAmount;
 
     @ToString.Exclude
     @Transient

@@ -16,6 +16,7 @@ import uk.gov.hmcts.payment.api.contract.PaymentDto;
 import uk.gov.hmcts.payment.api.contract.util.CurrencyCode;
 import uk.gov.hmcts.payment.api.contract.util.Service;
 import uk.gov.hmcts.payment.api.external.client.dto.GovPayPayment;
+import uk.gov.hmcts.payment.functional.config.LaunchDarklyFeature;
 import uk.gov.hmcts.payment.functional.config.TestConfigProperties;
 import uk.gov.hmcts.payment.functional.dsl.PaymentsTestDsl;
 import uk.gov.hmcts.payment.functional.fixture.PaymentFixture;
@@ -44,6 +45,8 @@ public class CMCCardPaymentFunctionalTest {
     private IdamService idamService;
     @Autowired
     private S2sTokenService s2sTokenService;
+    @Autowired
+    private LaunchDarklyFeature featureToggler;
 
     private RestTemplate restTemplate;
 
@@ -241,24 +244,25 @@ public class CMCCardPaymentFunctionalTest {
             paymentGroupsResponse.getPaymentGroups().stream()
                 .filter(paymentGroupDto -> paymentGroupDto.getPayments().get(0).getReference().equalsIgnoreCase(paymentDto.getReference()))
                 .forEach(paymentGroupDto -> {
-                    paymentGroupDto.getFees().stream()
-                        .filter(fee -> fee.getCode().equalsIgnoreCase("FEE0271"))
-                        .forEach(fee -> {
-                            assertEquals(BigDecimal.valueOf(20).intValue(), fee.getAllocatedAmount().intValue());
-                            assertEquals("Y", fee.getIsFullyApportioned());
-                        });
-                    paymentGroupDto.getFees().stream()
-                        .filter(fee -> fee.getCode().equalsIgnoreCase("FEE0272"))
-                        .forEach(fee -> {
-                            assertEquals(BigDecimal.valueOf(40).intValue(), fee.getAllocatedAmount().intValue());
-                            assertEquals("Y", fee.getIsFullyApportioned());
-                        });
-                    paymentGroupDto.getFees().stream()
-                        .filter(fee -> fee.getCode().equalsIgnoreCase("FEE0273"))
-                        .forEach(fee -> {
-                            assertEquals(BigDecimal.valueOf(60).intValue(), fee.getAllocatedAmount().intValue());
-                            assertEquals("Y", fee.getIsFullyApportioned());
-                        });
+
+                    boolean apportionFeature = featureToggler.getBooleanValue("apportion-feature",false);
+                    if(apportionFeature) {
+                        paymentGroupDto.getFees().stream()
+                            .filter(fee -> fee.getCode().equalsIgnoreCase("FEE0271"))
+                            .forEach(fee -> {
+                                assertEquals(BigDecimal.valueOf(20).intValue(), fee.getAmountDue().intValue());
+                            });
+                        paymentGroupDto.getFees().stream()
+                            .filter(fee -> fee.getCode().equalsIgnoreCase("FEE0272"))
+                            .forEach(fee -> {
+                                assertEquals(BigDecimal.valueOf(40).intValue(), fee.getAmountDue().intValue());
+                            });
+                        paymentGroupDto.getFees().stream()
+                            .filter(fee -> fee.getCode().equalsIgnoreCase("FEE0273"))
+                            .forEach(fee -> {
+                                assertEquals(BigDecimal.valueOf(60).intValue(), fee.getAmountDue().intValue());
+                            });
+                    }
                 });
         }));
     }

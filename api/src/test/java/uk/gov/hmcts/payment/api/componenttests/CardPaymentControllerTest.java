@@ -11,6 +11,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.web.servlet.MockMvc;
@@ -19,6 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.context.WebApplicationContext;
 
 import uk.gov.hmcts.payment.api.componenttests.util.PaymentsDataUtil;
+import uk.gov.hmcts.payment.api.configuration.LaunchDarklyFeatureToggler;
 import uk.gov.hmcts.payment.api.contract.CardPaymentRequest;
 import uk.gov.hmcts.payment.api.contract.FeeDto;
 import uk.gov.hmcts.payment.api.contract.PaymentDto;
@@ -40,6 +42,7 @@ import java.util.List;
 import static com.github.tomakehurst.wiremock.client.WireMock.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.*;
+import static org.mockito.Mockito.when;
 import static org.springframework.boot.test.context.SpringBootTest.WebEnvironment.MOCK;
 import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -78,6 +81,9 @@ public class CardPaymentControllerTest extends PaymentsDataUtil {
 
     @Autowired
     private ObjectMapper objectMapper;
+
+    @MockBean
+    private LaunchDarklyFeatureToggler featureToggler;
 
     protected CustomResultMatcher body() {
         return new CustomResultMatcher(objectMapper);
@@ -804,6 +810,8 @@ public class CardPaymentControllerTest extends PaymentsDataUtil {
 
         String ccdCaseNumber = "1111CC12" + RandomUtils.nextInt();
 
+        when(featureToggler.getBooleanValue("apportion-feature",false)).thenReturn(true);
+
         stubFor(post(urlPathMatching("/v1/payments"))
             .willReturn(aResponse()
                 .withStatus(201)
@@ -840,18 +848,17 @@ public class CardPaymentControllerTest extends PaymentsDataUtil {
 
         List<PaymentFee> savedfees = db.findByReference(paymentDto.getPaymentGroupReference()).getFees();
 
-        assertEquals(new BigDecimal(20), savedfees.get(0).getAllocatedAmount());
-        assertEquals(new BigDecimal(40), savedfees.get(1).getAllocatedAmount());
-        assertEquals(new BigDecimal(60), savedfees.get(2).getAllocatedAmount());
-        assertEquals("Y", savedfees.get(0).getIsFullyApportioned());
-        assertEquals("Y", savedfees.get(1).getIsFullyApportioned());
-        assertEquals("Y", savedfees.get(2).getIsFullyApportioned());
+        assertEquals(new BigDecimal(20), savedfees.get(0).getAmountDue());
+        assertEquals(new BigDecimal(40), savedfees.get(1).getAmountDue());
+        assertEquals(new BigDecimal(60), savedfees.get(2).getAmountDue());
     }
 
     @Test
     public void createCardPaymentWithMultipleFee_ShortfallPayment() throws Exception {
 
         String ccdCaseNumber = "1111CC12" + RandomUtils.nextInt();
+
+        when(featureToggler.getBooleanValue("apportion-feature",false)).thenReturn(true);
 
         stubFor(post(urlPathMatching("/v1/payments"))
             .willReturn(aResponse()
@@ -889,18 +896,17 @@ public class CardPaymentControllerTest extends PaymentsDataUtil {
 
         List<PaymentFee> savedfees = db.findByReference(paymentDto.getPaymentGroupReference()).getFees();
 
-        assertEquals(new BigDecimal(30), savedfees.get(0).getAllocatedAmount());
-        assertEquals(new BigDecimal(40), savedfees.get(1).getAllocatedAmount());
-        assertEquals(new BigDecimal(50), savedfees.get(2).getAllocatedAmount());
-        assertEquals("Y", savedfees.get(0).getIsFullyApportioned());
-        assertEquals("Y", savedfees.get(1).getIsFullyApportioned());
-        assertEquals("N", savedfees.get(2).getIsFullyApportioned());
+        assertEquals(new BigDecimal(30), savedfees.get(0).getAmountDue());
+        assertEquals(new BigDecimal(40), savedfees.get(1).getAmountDue());
+        assertEquals(new BigDecimal(60), savedfees.get(2).getAmountDue());
     }
 
     @Test
     public void createCardPaymentWithMultipleFee_SurplusPayment() throws Exception {
 
         String ccdCaseNumber = "1111CC12" + RandomUtils.nextInt();
+
+        when(featureToggler.getBooleanValue("apportion-feature",false)).thenReturn(true);
 
         stubFor(post(urlPathMatching("/v1/payments"))
             .willReturn(aResponse()
@@ -938,12 +944,55 @@ public class CardPaymentControllerTest extends PaymentsDataUtil {
 
         List<PaymentFee> savedfees = db.findByReference(paymentDto.getPaymentGroupReference()).getFees();
 
-        assertEquals(new BigDecimal(10), savedfees.get(0).getAllocatedAmount());
-        assertEquals(new BigDecimal(40), savedfees.get(1).getAllocatedAmount());
-        assertEquals(new BigDecimal(70), savedfees.get(2).getAllocatedAmount());
-        assertEquals("Y", savedfees.get(0).getIsFullyApportioned());
-        assertEquals("Y", savedfees.get(1).getIsFullyApportioned());
-        assertEquals("Y", savedfees.get(2).getIsFullyApportioned());
+        assertEquals(new BigDecimal(10), savedfees.get(0).getAmountDue());
+        assertEquals(new BigDecimal(40), savedfees.get(1).getAmountDue());
+        assertEquals(new BigDecimal(60), savedfees.get(2).getAmountDue());
+    }
+
+    @Test
+    public void createCardPaymentWithMultipleFee_SurplusPayment_When_Apportion_Flag_Is_On() throws Exception {
+
+        String ccdCaseNumber = "1111CC12" + RandomUtils.nextInt();
+        when(featureToggler.getBooleanValue("apportion-feature",false)).thenReturn(true);
+        stubFor(post(urlPathMatching("/v1/payments"))
+            .willReturn(aResponse()
+                .withStatus(201)
+                .withHeader("Content-Type", "application/json")
+                .withBody(contentsOf("gov-pay-responses/create-payment-response-apportion.json"))));
+
+        List<FeeDto> fees = new ArrayList<>();
+        fees.add(FeeDto.feeDtoWith().code("FEE0271").ccdCaseNumber(ccdCaseNumber).feeAmount(new BigDecimal(10))
+            .volume(1).version("1").calculatedAmount(new BigDecimal(10)).build());
+        fees.add(FeeDto.feeDtoWith().code("FEE0271").ccdCaseNumber(ccdCaseNumber).feeAmount(new BigDecimal(40))
+            .volume(1).version("1").calculatedAmount(new BigDecimal(40)).build());
+        fees.add(FeeDto.feeDtoWith().code("FEE0271").ccdCaseNumber(ccdCaseNumber).feeAmount(new BigDecimal(60))
+            .volume(1).version("1").calculatedAmount(new BigDecimal(60)).build());
+
+        CardPaymentRequest cardPaymentRequest = CardPaymentRequest.createCardPaymentRequestDtoWith()
+            .amount(new BigDecimal("120"))
+            .description("description")
+            .caseReference("telRefNumber")
+            .ccdCaseNumber(ccdCaseNumber)
+            .service(Service.PROBATE)
+            .currency(CurrencyCode.GBP)
+            .siteId("AA08")
+            .fees(fees)
+            .build();
+
+        MvcResult result = restActions
+            .withReturnUrl("https://www.google.com")
+            .withHeader("service-callback-url", "http://payments.com")
+            .post("/card-payments", cardPaymentRequest)
+            .andExpect(status().isCreated())
+            .andReturn();
+
+        PaymentDto paymentDto = objectMapper.readValue(result.getResponse().getContentAsByteArray(), PaymentDto.class);
+
+        List<PaymentFee> savedfees = db.findByReference(paymentDto.getPaymentGroupReference()).getFees();
+
+        assertEquals(new BigDecimal(10), savedfees.get(0).getAmountDue());
+        assertEquals(new BigDecimal(40), savedfees.get(1).getAmountDue());
+        assertEquals(new BigDecimal(60), savedfees.get(2).getAmountDue());
     }
 
     private CardPaymentRequest cardPaymentRequest() throws Exception {

@@ -174,13 +174,10 @@ public class PaymentController {
     @GetMapping(value = "/payments/{reference}")
     public PaymentDto retrievePayment(@PathVariable("reference") String paymentReference) {
 
-        PaymentFeeLink paymentFeeLink = paymentService.retrieve(paymentReference);
-        Optional<Payment> payment = paymentFeeLink.getPayments().stream()
-            .filter(p -> p.getReference().equals(paymentReference)).findAny();
-        if(payment.isPresent()) {
-            return paymentDtoMapper.toGetPaymentResponseDtos(payment.get());
-        }
-        return new PaymentDto();
+        Payment payment = paymentService.findSavedPayment(paymentReference);
+
+        return paymentDtoMapper.toGetPaymentResponseDtos(payment);
+
     }
 
     private Optional<Payment> getPaymentByReference(String reference) {

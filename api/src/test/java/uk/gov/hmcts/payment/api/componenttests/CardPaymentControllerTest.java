@@ -260,12 +260,12 @@ public class CardPaymentControllerTest extends PaymentsDataUtil {
 
         PaymentDto paymentDto = objectMapper.readValue(result.getResponse().getContentAsByteArray(), PaymentDto.class);
         assertNotNull(paymentDto);
-        assertEquals(paymentDto.getReference(), savedPayment.getReference());
+        assertEquals("RC-1519-9028-2432-9115", savedPayment.getReference());
         assertEquals(paymentDto.getAmount(), new BigDecimal("499.99"));
         assertEquals(paymentDto.getStatusHistories().size(), 1);
         paymentDto.getStatusHistories().stream().forEach(h -> {
-            assertEquals(h.getStatus(), "Success");
-            assertEquals(h.getExternalStatus(), "success");
+            assertEquals(h.getStatus(), "Initiated");
+            assertEquals(h.getExternalStatus(), "created");
         });
     }
 

@@ -69,7 +69,7 @@ public class RestErrorHandler {
 
         if (localizedErrorMessage.equals(fieldError.getDefaultMessage())) {
             String[] fieldErrorCodes = fieldError.getCodes();
-            localizedErrorMessage = fieldErrorCodes[0];
+            localizedErrorMessage = fieldErrorCodes != null ? fieldErrorCodes[0] : "";
 
         }
 

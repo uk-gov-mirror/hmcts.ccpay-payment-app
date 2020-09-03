@@ -67,7 +67,7 @@ public class RestErrorHandler {
         Locale currentLocale = LocaleContextHolder.getLocale();
         String localizedErrorMessage = messageSource.getMessage(fieldError, currentLocale);
 
-        if (localizedErrorMessage.equals(fieldError.getDefaultMessage())) {
+        if (fieldError != null && localizedErrorMessage.equals(fieldError.getDefaultMessage())) {
             String[] fieldErrorCodes = fieldError.getCodes();
             localizedErrorMessage = fieldErrorCodes[0];
 

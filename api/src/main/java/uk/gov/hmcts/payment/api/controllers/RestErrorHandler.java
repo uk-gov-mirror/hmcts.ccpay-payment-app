@@ -17,8 +17,6 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import uk.gov.hmcts.payment.api.contract.exception.ValidationErrorDTO;
 import uk.gov.hmcts.payment.api.exception.ValidationErrorException;
-
-import javax.validation.ValidationException;
 import java.util.List;
 import java.util.Locale;
 

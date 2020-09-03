@@ -53,13 +53,14 @@ public class RestErrorHandler {
 
     private ValidationErrorDTO processFieldErrors(List<FieldError> fieldErrors) {
         ValidationErrorDTO dto = new ValidationErrorDTO();
-
-        for (FieldError fieldError: fieldErrors) {
-            String localizedErrorMessage = resolveErrorMessage(fieldError);
-            LOG.debug("Adding error message: {} to field: {}", localizedErrorMessage, fieldError.getField());
-            dto.addFieldError(fieldError.getField(), localizedErrorMessage);
-        }
-
+            for (FieldError fieldError : fieldErrors) {
+                String localizedErrorMessage=null;
+                    if(fieldError != null && fieldError.getField() != null) {
+                        localizedErrorMessage = resolveErrorMessage(fieldError);
+                        LOG.debug("Adding error message: {} to field: {}", localizedErrorMessage, fieldError.getField());
+                        dto.addFieldError(fieldError.getField(), localizedErrorMessage);
+                    }
+            }
         return dto;
     }
 
@@ -68,9 +69,9 @@ public class RestErrorHandler {
         String localizedErrorMessage = messageSource.getMessage(fieldError, currentLocale);
 
         if (fieldError != null && localizedErrorMessage.equals(fieldError.getDefaultMessage())) {
-            String[] fieldErrorCodes = fieldError.getCodes();
-            localizedErrorMessage = fieldErrorCodes[0];
-
+           if (fieldError.getCodes() != null) {
+                localizedErrorMessage = fieldError.getCodes()[0];
+            }
         }
 
         return localizedErrorMessage;

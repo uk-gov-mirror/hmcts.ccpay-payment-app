@@ -4,7 +4,10 @@ import lombok.*;
 
 import javax.validation.constraints.NotNull;
 
-@Data
+@ToString
+@EqualsAndHashCode
+@Getter
+@Setter
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder(builderMethodName = "telephonyCallbackWith")

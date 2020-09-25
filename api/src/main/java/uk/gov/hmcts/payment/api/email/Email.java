@@ -1,11 +1,13 @@
 package uk.gov.hmcts.payment.api.email;
 
-import lombok.Builder;
-import lombok.Data;
+import lombok.*;
 
 import java.util.List;
 
-@Data
+@ToString
+@EqualsAndHashCode
+@Getter
+@Setter
 @Builder(builderMethodName = "emailWith")
 public class Email {
 

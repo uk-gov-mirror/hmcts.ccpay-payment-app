@@ -45,6 +45,6 @@ public class PBAController {
         List<PaymentDto> paymentDto = paymentFeeLinks.stream()
             .map(paymentDtoMapper::toReconciliationResponseDto).collect(Collectors.toList());
 
-        return new PaymentsResponse(paymentDto);
+        return new PaymentsResponse(paymentDto,null);
     }
 }

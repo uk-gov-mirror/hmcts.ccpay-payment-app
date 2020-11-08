@@ -7,6 +7,7 @@ import org.joda.time.format.DateTimeFormatter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.annotation.Transactional;
@@ -121,8 +122,8 @@ public class PaymentController {
             .map(s -> fromDateTime != null && s.getHourOfDay() == 0 ? s.plusDays(1).minusSeconds(1).toDate() : s.toDate())
             .orElse(null);
 
-        List<PaymentFeeLink> paymentFeeLinks = paymentService
-            .search(
+        Page<PaymentFeeLink> paymentFeeLinks = paymentService
+            .search1(
                 PaymentSearchCriteria
                     .searchCriteriaWith()
                     .startDate(fromDateTime)
@@ -133,13 +134,12 @@ public class PaymentController {
                     .serviceType(serviceType.map(value -> Service.valueOf(value.toUpperCase()).getName()).orElse(null))
                     .build()
             );
-
         final List<PaymentDto> paymentDtos = new ArrayList<>();
-        LOG.info("No of paymentFeeLinks retrieved for Liberata Pull : {}", paymentFeeLinks.size());
-        for (final PaymentFeeLink paymentFeeLink: paymentFeeLinks) {
+        LOG.info("No of paymentFeeLinks retrieved for Liberata Pull : {} {}", paymentFeeLinks.getTotalPages(),paymentFeeLinks.getPageable().getPageNumber());
+        for (final PaymentFeeLink paymentFeeLink: paymentFeeLinks.getContent()) {
             populatePaymentDtos(paymentDtos, paymentFeeLink);
         }
-        return new PaymentsResponse(paymentDtos);
+        return new PaymentsResponse(paymentDtos, new PaymentsResponse.Meta(paymentFeeLinks.getPageable().getPageNumber(),paymentFeeLinks.getPageable().getPageSize()));
     }
 
     @ApiOperation(value = "Update payment status by payment reference", notes = "Update payment status by payment reference")

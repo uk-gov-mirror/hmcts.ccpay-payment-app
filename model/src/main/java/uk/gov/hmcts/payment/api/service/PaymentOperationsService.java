@@ -1,14 +1,12 @@
 package uk.gov.hmcts.payment.api.service;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import uk.gov.hmcts.payment.api.dto.PaymentSearchCriteria;
 import uk.gov.hmcts.payment.api.dto.Reference;
-import uk.gov.hmcts.payment.api.model.FeePayApportion;
-import uk.gov.hmcts.payment.api.model.Payment;
-import uk.gov.hmcts.payment.api.model.Payment2Repository;
-import uk.gov.hmcts.payment.api.model.PaymentMethod;
+import uk.gov.hmcts.payment.api.model.*;
 
 import javax.persistence.criteria.*;
 import java.util.ArrayList;
@@ -52,6 +50,11 @@ public class PaymentOperationsService implements PaymentService<Payment, String>
 
     @Override
     public List<FeePayApportion> findByPaymentId(Integer paymentId) {
+        return null;
+    }
+
+    @Override
+    public Page<PaymentFeeLink> search1(PaymentSearchCriteria searchCriteria) {
         return null;
     }
 

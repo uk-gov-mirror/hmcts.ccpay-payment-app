@@ -6,6 +6,7 @@ import org.apache.commons.validator.routines.checkdigit.CheckDigitException;
 import org.apache.http.MethodNotSupportedException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Component;
 import uk.gov.hmcts.payment.api.dto.PaymentSearchCriteria;
 import uk.gov.hmcts.payment.api.dto.PaymentServiceRequest;
@@ -90,6 +91,16 @@ public class LoggingPaymentService implements DelegatingPaymentService<PaymentFe
 
         LOG.info("PaymentFeeLinks found: {}", paymentFeeLinks.size());
 
+        return paymentFeeLinks;
+    }
+
+    @Override
+    public Page<PaymentFeeLink> search1(PaymentSearchCriteria searchCriteria) {
+        if (searchCriteria.getStartDate() != null || searchCriteria.getEndDate() != null) {
+            LOG.info("Searching for payments between {} and {}", searchCriteria.getStartDate(), searchCriteria.getEndDate());
+        }
+
+        Page<PaymentFeeLink> paymentFeeLinks = delegate.search1(searchCriteria);
         return paymentFeeLinks;
     }
 

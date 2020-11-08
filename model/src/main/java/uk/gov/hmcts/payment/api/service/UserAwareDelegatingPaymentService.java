@@ -287,7 +287,7 @@ public class UserAwareDelegatingPaymentService implements DelegatingPaymentServi
     @Override
     public Page<PaymentFeeLink> search1(PaymentSearchCriteria searchCriteria) {
         Pageable pageable = PageRequest.of(0, 40);
-        return paymentRespository.findAll(findPayments(searchCriteria),pageable);
+        return paymentFeeLinkRepository.findAll(findPayments(searchCriteria),pageable);
     }
 
     @Override

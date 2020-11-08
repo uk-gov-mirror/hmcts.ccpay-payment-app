@@ -139,7 +139,7 @@ public class PaymentController {
         for (final PaymentFeeLink paymentFeeLink: paymentFeeLinks.getContent()) {
             populatePaymentDtos(paymentDtos, paymentFeeLink);
         }
-        return new PaymentsResponse(paymentDtos, new PaymentsResponse.Meta(paymentFeeLinks.getPageable().getPageNumber(),paymentFeeLinks.getPageable().getPageSize()));
+        return new PaymentsResponse(paymentDtos, new PaymentsResponse.Meta(paymentFeeLinks.getPageable().getPageNumber(),paymentFeeLinks.getTotalPages()));
     }
 
     @ApiOperation(value = "Update payment status by payment reference", notes = "Update payment status by payment reference")

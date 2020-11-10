@@ -21,4 +21,10 @@ public class PaymentSearchCriteria {
 
     private String pbaNumber;
 
+    private Integer pageNumber;
+
+    private Integer pageSize;
+
+
+
 }

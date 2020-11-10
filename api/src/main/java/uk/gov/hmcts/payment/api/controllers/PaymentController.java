@@ -105,7 +105,9 @@ public class PaymentController {
                                              @RequestParam(name = "payment_method", required = false) Optional<String> paymentMethodType,
                                              @RequestParam(name = "service_name", required = false) Optional<String> serviceType,
                                              @RequestParam(name = "ccd_case_number", required = false) String ccdCaseNumber,
-                                             @RequestParam(name = "pba_number", required = false) String pbaNumber
+                                             @RequestParam(name = "pba_number", required = false) String pbaNumber,
+                                             @RequestParam(name = "page_number", required = false) String pageNumber,
+                                             @RequestParam(name = "page_size", required = false) String pageSize
     ) {
 
         if (!ff4j.check("payment-search")) {
@@ -132,6 +134,8 @@ public class PaymentController {
                     .pbaNumber(pbaNumber)
                     .paymentMethod(paymentMethodType.map(value -> PaymentMethodType.valueOf(value.toUpperCase()).getType()).orElse(null))
                     .serviceType(serviceType.map(value -> Service.valueOf(value.toUpperCase()).getName()).orElse(null))
+                    .pageNumber(Integer.parseInt(pageNumber))
+                    .pageSize(Integer.parseInt(pageSize))
                     .build()
             );
         final List<PaymentDto> paymentDtos = new ArrayList<>();

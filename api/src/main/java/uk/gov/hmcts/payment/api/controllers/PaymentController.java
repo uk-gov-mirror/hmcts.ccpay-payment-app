@@ -135,11 +135,11 @@ public class PaymentController {
                     .build()
             );
         final List<PaymentDto> paymentDtos = new ArrayList<>();
-        LOG.info("No of paymentFeeLinks retrieved for Liberata Pull : {} {}", paymentFeeLinks.getTotalPages(),paymentFeeLinks.getPageable().getPageNumber());
+        LOG.info("No of paymentFeeLinks retrieved for Liberata Pull : {} {}", paymentFeeLinks.getPageable().getPageNumber(),paymentFeeLinks.getTotalPages());
         for (final PaymentFeeLink paymentFeeLink: paymentFeeLinks.getContent()) {
             populatePaymentDtos(paymentDtos, paymentFeeLink);
         }
-        return new PaymentsResponse(paymentDtos, new PaymentsResponse.Meta(paymentFeeLinks.getPageable().getPageNumber(),paymentFeeLinks.getTotalPages()));
+        return new PaymentsResponse(paymentDtos, new PaymentsResponse.Meta(paymentFeeLinks.getPageable().getPageNumber(),paymentFeeLinks.getTotalPages(),paymentFeeLinks.getPageable().getPageSize()));
     }
 
     @ApiOperation(value = "Update payment status by payment reference", notes = "Update payment status by payment reference")

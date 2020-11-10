@@ -31,5 +31,6 @@ public class PaymentsResponse {
     public static class Meta {
         private Integer currentPage;
         private Integer totalPage;
+        private Integer pageSize;
     }
 }

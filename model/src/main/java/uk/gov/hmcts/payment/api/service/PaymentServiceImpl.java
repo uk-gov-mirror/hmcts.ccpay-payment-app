@@ -130,7 +130,7 @@ public class PaymentServiceImpl implements PaymentService<PaymentFeeLink, String
     }
 
     @Override
-    public Page<PaymentFeeLink> search1(PaymentSearchCriteria searchCriteria) {
+    public Page<Payment> search1(PaymentSearchCriteria searchCriteria) {
         return delegatingPaymentService.search1(searchCriteria);
     }
 

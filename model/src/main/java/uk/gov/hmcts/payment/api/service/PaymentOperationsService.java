@@ -54,7 +54,7 @@ public class PaymentOperationsService implements PaymentService<Payment, String>
     }
 
     @Override
-    public Page<PaymentFeeLink> search1(PaymentSearchCriteria searchCriteria) {
+    public Page<Payment> search1(PaymentSearchCriteria searchCriteria) {
         return null;
     }
 

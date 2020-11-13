@@ -105,4 +105,14 @@ public class PayFeeLinkRepositoryStub implements PaymentFeeLinkRepository {
     public long count(Specification<PaymentFeeLink> spec) {
         return 0;
     }
+
+    @Override
+    public Iterable<PaymentFeeLink> findAll(Sort sort) {
+        return null;
+    }
+
+    @Override
+    public Page<PaymentFeeLink> findAll(Pageable pageable) {
+        return null;
+    }
 }

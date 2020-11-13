@@ -5,6 +5,7 @@ import org.apache.http.MethodNotSupportedException;
 import org.springframework.data.domain.Page;
 import uk.gov.hmcts.payment.api.dto.PaymentSearchCriteria;
 import uk.gov.hmcts.payment.api.dto.PaymentServiceRequest;
+import uk.gov.hmcts.payment.api.model.Payment;
 import uk.gov.hmcts.payment.api.model.PaymentFeeLink;
 
 import java.util.List;
@@ -25,7 +26,7 @@ public interface DelegatingPaymentService<T, ID> {
 
     List<T> search(PaymentSearchCriteria searchCriteria);
 
-    Page<T> search1(PaymentSearchCriteria searchCriteria);
+    Page<Payment> search1(PaymentSearchCriteria searchCriteria);
 
     void cancel(String paymentReference);
 

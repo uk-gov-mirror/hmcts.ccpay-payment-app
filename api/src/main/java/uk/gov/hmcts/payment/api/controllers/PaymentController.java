@@ -106,8 +106,8 @@ public class PaymentController {
                                              @RequestParam(name = "service_name", required = false) Optional<String> serviceType,
                                              @RequestParam(name = "ccd_case_number", required = false) String ccdCaseNumber,
                                              @RequestParam(name = "pba_number", required = false) String pbaNumber,
-                                             @RequestParam(name = "page_number", required = false) String pageNumber,
-                                             @RequestParam(name = "page_size", required = false) String pageSize
+                                             @RequestParam(name = "page_number", required = false) Integer pageNumber,
+                                             @RequestParam(name = "page_size", required = false) Integer pageSize
     ) {
 
         if (!ff4j.check("payment-search")) {
@@ -124,7 +124,7 @@ public class PaymentController {
             .map(s -> fromDateTime != null && s.getHourOfDay() == 0 ? s.plusDays(1).minusSeconds(1).toDate() : s.toDate())
             .orElse(null);
 
-        Page<PaymentFeeLink> paymentFeeLinks = paymentService
+        Page<Payment> paymentFeeLinks = paymentService
             .search1(
                 PaymentSearchCriteria
                     .searchCriteriaWith()
@@ -134,16 +134,16 @@ public class PaymentController {
                     .pbaNumber(pbaNumber)
                     .paymentMethod(paymentMethodType.map(value -> PaymentMethodType.valueOf(value.toUpperCase()).getType()).orElse(null))
                     .serviceType(serviceType.map(value -> Service.valueOf(value.toUpperCase()).getName()).orElse(null))
-                    .pageNumber(Integer.parseInt(pageNumber))
-                    .pageSize(Integer.parseInt(pageSize))
+                    .pageNumber(pageNumber-1)
+                    .pageSize(pageSize)
                     .build()
             );
         final List<PaymentDto> paymentDtos = new ArrayList<>();
         LOG.info("No of paymentFeeLinks retrieved for Liberata Pull : {} {}", paymentFeeLinks.getPageable().getPageNumber(),paymentFeeLinks.getTotalPages());
-        for (final PaymentFeeLink paymentFeeLink: paymentFeeLinks.getContent()) {
-            populatePaymentDtos(paymentDtos, paymentFeeLink);
+        for (final Payment payment: paymentFeeLinks.getContent()) {
+            populatePaymentDtos(paymentDtos, payment);
         }
-        return new PaymentsResponse(paymentDtos, new PaymentsResponse.Meta(paymentFeeLinks.getPageable().getPageNumber(),paymentFeeLinks.getTotalPages(),paymentFeeLinks.getPageable().getPageSize()));
+        return new PaymentsResponse(paymentFeeLinks.getNumber()+1, paymentFeeLinks.getPageable().getPageSize(), (int) paymentFeeLinks.getTotalElements(),paymentFeeLinks.getTotalPages(), paymentDtos);
     }
 
     @ApiOperation(value = "Update payment status by payment reference", notes = "Update payment status by payment reference")
@@ -194,20 +194,20 @@ public class PaymentController {
             .filter(p -> p.getReference().equals(reference)).findAny();
     }
 
-    private void populatePaymentDtos(final List<PaymentDto> paymentDtos, final PaymentFeeLink paymentFeeLink) {
+    private void populatePaymentDtos(final List<PaymentDto> paymentDtos, final Payment payment) {
         //Adding this filter to exclude Exela payments if the bulk scan toggle feature is disabled.
-        List<Payment> payments = getFilteredListBasedOnBulkScanToggleFeature(paymentFeeLink);
+        //List<Payment> payments = getFilteredListBasedOnBulkScanToggleFeature(payment);
         boolean apportionFeature = featureToggler.getBooleanValue("apportion-feature",false);
 
-        LOG.info("BSP Feature ON : No of Payments retrieved for Liberata Pull : {}", payments.size());
+        //LOG.info("BSP Feature ON : No of Payments retrieved for Liberata Pull : {}", payments.size());
         LOG.info("Apportion feature flag in liberata API: {}", apportionFeature);
-        for (final Payment payment: payments) {
-            final String paymentReference = paymentFeeLink.getPaymentReference();
+
+            final String paymentReference = payment.getPaymentLink().getPaymentReference();
             //Apportion logic added for pulling allocation amount
             boolean apportionCheck = payment.getPaymentChannel() != null
                 && !payment.getPaymentChannel().getName().equalsIgnoreCase(Service.DIGITAL_BAR.getName());
             LOG.info("Apportion check value in liberata API: {}", apportionCheck);
-            List<PaymentFee> fees = paymentFeeLink.getFees();
+            List<PaymentFee> fees = payment.getPaymentLink().getFees();
             boolean isPaymentAfterApportionment = false;
             if (apportionCheck && apportionFeature) {
                 LOG.info("Apportion check and feature passed");
@@ -222,7 +222,6 @@ public class PaymentController {
             //End of Apportion logic
             final PaymentDto paymentDto = paymentDtoMapper.toReconciliationResponseDtoForLibereta(payment, paymentReference, fees,ff4j,isPaymentAfterApportionment);
             paymentDtos.add(paymentDto);
-        }
     }
 
     private void getApportionedDetails(List<PaymentFee> fees, List<FeePayApportion> feePayApportionList) {
@@ -249,8 +248,7 @@ public class PaymentController {
         }
     }
 
-    private List<Payment> getFilteredListBasedOnBulkScanToggleFeature(PaymentFeeLink paymentFeeLink) {
-        List<Payment> payments = paymentFeeLink.getPayments();
+    /*private List<Payment> getFilteredListBasedOnBulkScanToggleFeature(Payment payments) {
         boolean bulkScanCheck = ff4j.check("bulk-scan-check");
         LOG.info("bulkScanCheck value: {}",bulkScanCheck);
         if(!bulkScanCheck) {
@@ -264,7 +262,7 @@ public class PaymentController {
                 .collect(Collectors.toList());
         }
         return payments;
-    }
+    }*/
 
     @ResponseStatus(HttpStatus.NOT_FOUND)
     @ExceptionHandler(PaymentNotFoundException.class)

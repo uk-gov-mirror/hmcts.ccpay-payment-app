@@ -12,6 +12,7 @@ import org.springframework.context.annotation.Primary;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -35,6 +36,8 @@ import uk.gov.hmcts.payment.api.v1.model.govpay.GovPayAuthUtil;
 import javax.persistence.criteria.*;
 import javax.validation.constraints.NotNull;
 import java.math.BigDecimal;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.*;
 
 @Service
@@ -284,9 +287,27 @@ public class UserAwareDelegatingPaymentService implements DelegatingPaymentServi
     }
 
     @Override
-    public Page<PaymentFeeLink> search1(PaymentSearchCriteria searchCriteria) {
+    public Page<Payment> search1(PaymentSearchCriteria searchCriteria) {
         Pageable pageable = PageRequest.of(searchCriteria.getPageNumber(), searchCriteria.getPageSize());
-        return paymentFeeLinkRepository.findAll(findPayments(searchCriteria),pageable);
+        return paymentRespository.findAll(findByDatesBetween(searchCriteria.getStartDate(),searchCriteria.getEndDate()),pageable);
+    }
+
+    private static Specification findByDatesBetween(Date fromDate, Date toDate) {
+        return Specification
+            .where(isBetween(fromDate, toDate));
+    }
+
+    private static Specification isBetween(Date startDate, Date endDate) {
+
+        return ((root, query, cb) -> cb.between(root.get("dateUpdated"), startDate, endDate));
+    }
+
+    private Date parseDate(String date) {
+        try {
+            return new SimpleDateFormat("dd.MM.yyyy").parse(date);
+        } catch (ParseException e) {
+            return null;
+        }
     }
 
     @Override
@@ -312,49 +333,15 @@ public class UserAwareDelegatingPaymentService implements DelegatingPaymentServi
         PaymentSearchCriteria searchCriteria, CriteriaQuery<?> query) {
         List<Predicate> predicates = new ArrayList<>();
 
-        Join<PaymentFeeLink, Payment> paymentJoin = root.join("payments", JoinType.LEFT);
+        Join<PaymentFeeLink,Payment> paymentJoin = root.join("payments", JoinType.LEFT);
 
-        if (searchCriteria.getPaymentMethod() != null) {
-            if(searchCriteria.getPaymentMethod().equalsIgnoreCase("all"))
-            {
-                Predicate predicateCheque = cb.equal(paymentJoin.get(PAYMENT_METHOD), PaymentMethod.paymentMethodWith().name("cheque").build());
-                Predicate predicateCard = cb.equal(paymentJoin.get(PAYMENT_METHOD), PaymentMethod.paymentMethodWith().name("card").build());
-                Predicate predicateDD = cb.equal(paymentJoin.get(PAYMENT_METHOD), PaymentMethod.paymentMethodWith().name("direct debit").build());
-                Predicate predicateCash = cb.equal(paymentJoin.get(PAYMENT_METHOD), PaymentMethod.paymentMethodWith().name("cash").build());
-                Predicate predicatePBA = cb.equal(paymentJoin.get(PAYMENT_METHOD), PaymentMethod.paymentMethodWith().name("payment by account").build());
-                Predicate predicateAllPay = cb.equal(paymentJoin.get(PAYMENT_METHOD), PaymentMethod.paymentMethodWith().name("all pay").build());
-                Predicate predicatePO = cb.equal(paymentJoin.get(PAYMENT_METHOD), PaymentMethod.paymentMethodWith().name("postal order").build());
-                Predicate predicateFinal = cb.or(predicateCheque,predicateCard,predicateDD,predicateCash,predicatePBA,predicateAllPay,predicatePO);
-                predicates.add(predicateFinal);
-            }
-            else
-            {
-                predicates.add(cb.equal(paymentJoin.get(PAYMENT_METHOD), PaymentMethod.paymentMethodWith().name(searchCriteria.getPaymentMethod()).build()));
-            }
-
-        }
 
         Expression<Date> dateUpdatedExpr = cb.function("date_trunc", Date.class, cb.literal("seconds"), paymentJoin.get("dateUpdated"));
 
         if (searchCriteria.getStartDate() != null && searchCriteria.getEndDate() != null) {
             predicates.add(cb.between(dateUpdatedExpr, searchCriteria.getStartDate(), searchCriteria.getEndDate()));
-        } else if (searchCriteria.getStartDate() != null) {
-            predicates.add(cb.greaterThanOrEqualTo(dateUpdatedExpr, searchCriteria.getStartDate()));
-        } else if (searchCriteria.getEndDate() != null) {
-            predicates.add(cb.lessThanOrEqualTo(dateUpdatedExpr, searchCriteria.getEndDate()));
         }
 
-        if (searchCriteria.getCcdCaseNumber() != null) {
-            predicates.add(cb.equal(paymentJoin.get("ccdCaseNumber"), searchCriteria.getCcdCaseNumber()));
-        }
-
-        if (searchCriteria.getServiceType() != null) {
-            predicates.add(cb.equal(paymentJoin.get("serviceType"), searchCriteria.getServiceType()));
-        }
-
-        if (searchCriteria.getPbaNumber() != null) {
-            predicates.add(cb.equal(paymentJoin.get("pbaNumber"), searchCriteria.getPbaNumber()));
-        }
         query.groupBy(root.get("id"));
         return cb.and(predicates.toArray(REF));
     }

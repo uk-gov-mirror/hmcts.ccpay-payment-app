@@ -95,12 +95,12 @@ public class LoggingPaymentService implements DelegatingPaymentService<PaymentFe
     }
 
     @Override
-    public Page<PaymentFeeLink> search1(PaymentSearchCriteria searchCriteria) {
+    public Page<Payment> search1(PaymentSearchCriteria searchCriteria) {
         if (searchCriteria.getStartDate() != null || searchCriteria.getEndDate() != null) {
             LOG.info("Searching for payments between {} and {}", searchCriteria.getStartDate(), searchCriteria.getEndDate());
         }
 
-        Page<PaymentFeeLink> paymentFeeLinks = delegate.search1(searchCriteria);
+        Page<Payment> paymentFeeLinks = delegate.search1(searchCriteria);
         return paymentFeeLinks;
     }
 

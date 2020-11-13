@@ -12,6 +12,7 @@ import uk.gov.hmcts.payment.api.external.client.GovPayClient;
 import uk.gov.hmcts.payment.api.external.client.dto.CreatePaymentRequest;
 import uk.gov.hmcts.payment.api.external.client.dto.GovPayPayment;
 import uk.gov.hmcts.payment.api.external.client.dto.Link;
+import uk.gov.hmcts.payment.api.model.Payment;
 import uk.gov.hmcts.payment.api.model.PaymentFeeLink;
 import uk.gov.hmcts.payment.api.service.DelegatingPaymentService;
 import uk.gov.hmcts.payment.api.v1.model.ServiceIdSupplier;
@@ -67,7 +68,7 @@ public class GovPayDelegatingPaymentService implements DelegatingPaymentService<
     }
 
     @Override
-    public Page<GovPayPayment> search1(PaymentSearchCriteria searchCriteria) {
+    public Page<Payment> search1(PaymentSearchCriteria searchCriteria) {
         return null;
     }
 

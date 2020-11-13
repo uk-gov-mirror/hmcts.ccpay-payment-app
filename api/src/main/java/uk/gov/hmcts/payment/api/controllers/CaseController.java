@@ -61,7 +61,7 @@ public class CaseController {
             throw new PaymentNotFoundException();
         }
 
-        return new PaymentsResponse(payments,null);
+        return new PaymentsResponse(null,null,null,null,payments);
     }
 
 

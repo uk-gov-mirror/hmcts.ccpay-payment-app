@@ -55,7 +55,6 @@
         <cve>CVE-2017-18640</cve>
         <cve>CVE-2019-17638</cve>
         <cve>CVE-2020-24616</cve>
-        <cve>CVE-2020-15250</cve>
     </suppress>
     <suppress>
         <notes>Transitive dependency of spring boot version</notes>
@@ -76,6 +75,12 @@
         <notes> False positive reported at https://github.com/jeremylong/DependencyCheck/issues/1658 </notes>
         <cve>CVE-2007-1651</cve>
         <cve>CVE-2007-1652</cve>
+    </suppress>
+
+    <suppress>
+        <notes>file name: junit-4.13.1.jar Awaiting patch for Junit : https://deb.freexian.com/extended-lts/tracker/CVE-2020-15250</notes>
+        <packageUrl regex="true">^pkg:maven/junit/junit@.*$</packageUrl>
+        <cve>CVE-2020-15250</cve>
     </suppress>
 
 </suppressions>

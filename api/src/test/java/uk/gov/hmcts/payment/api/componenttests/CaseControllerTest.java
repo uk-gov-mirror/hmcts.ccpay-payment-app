@@ -139,6 +139,7 @@ public class CaseControllerTest extends PaymentsDataUtil {
 
         assertThat(payment.getReference()).isNotBlank();
         assertThat(payment.getAmount()).isPositive();
+
         assertThat(payment.getDateCreated()).isNotNull();
         assertThat(payment.getCustomerReference()).isNotBlank();
 

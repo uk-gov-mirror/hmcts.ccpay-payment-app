@@ -114,8 +114,12 @@ public class ReplayCreditAccountPaymentControllerTest extends PaymentsDataUtil {
 
     @Test
     public void replayCreditAccountPayment_AutomatedTest() throws Exception {
+
+        File paymentsToReplayCSV = null;
+
+        try {
         //create test csv file
-        final File testCSV = newFile("src/test/resources/paymentsToReplay.csv");
+            paymentsToReplayCSV = newFile("src/test/resources/paymentsToReplay.csv");
 
         Map<String, CreditAccountPaymentRequest> csvParseMap = new HashMap<>();
 
@@ -138,6 +142,8 @@ public class ReplayCreditAccountPaymentControllerTest extends PaymentsDataUtil {
         csvParseMap.entrySet().stream().forEach(entry -> {
             List<Payment> paymentList = db.findByCcdCaseNumber(entry.getValue().getCcdCaseNumber());
 
+                Assert.assertEquals(2, paymentList.size());
+
             Payment existingPayment = paymentList
                 .stream()
                 .filter(payment -> payment.getReference().equalsIgnoreCase(entry.getKey())).collect(Collectors.toList())
@@ -149,22 +155,45 @@ public class ReplayCreditAccountPaymentControllerTest extends PaymentsDataUtil {
                 .get(0);
 
             //existing payment should be failed
-            Assert.assertEquals(existingPayment.getPaymentStatus().getName() ,"failed");
+                Assert.assertEquals("failed", existingPayment.getPaymentStatus().getName());
+
             //Status history should contain message as System Failure. Not charged
-            Assert.assertEquals(existingPayment.getStatusHistories().get(0).getMessage(),"System Failure. Not charged");
+                Assert.assertEquals("System Failure. Not charged", existingPayment.getStatusHistories().get(0).getMessage());
 
             //new payment should be pending
-            Assert.assertEquals(newPayment.getPaymentStatus().getName(),"pending");
-        });
+                Assert.assertEquals("pending", newPayment.getPaymentStatus().getName());
 
+                //Check for each Request Fields & New Payment Fields
+
+                Assert.assertEquals(entry.getValue().getAmount(), newPayment.getAmount());
+                Assert.assertEquals(entry.getValue().getCcdCaseNumber(), newPayment.getCcdCaseNumber());
+                Assert.assertEquals(entry.getValue().getAccountNumber().replace("\"", ""), newPayment.getPbaNumber());
+                Assert.assertEquals(entry.getValue().getDescription(), newPayment.getDescription());
+                Assert.assertEquals(entry.getValue().getCaseReference().replace("\"", ""), newPayment.getCaseReference());
+                Assert.assertEquals(entry.getValue().getService().getName(), newPayment.getServiceType());
+                Assert.assertEquals(entry.getValue().getCurrency().getCode(), newPayment.getCurrency());
+                Assert.assertEquals(entry.getValue().getCustomerReference(), newPayment.getCustomerReference());
+                Assert.assertEquals(entry.getValue().getOrganisationName().replace("\"", ""), newPayment.getOrganisationName());
+                Assert.assertEquals(entry.getValue().getSiteId(), newPayment.getSiteId());
+                Assert.assertEquals(entry.getValue().getFees().get(0).getCode(), newPayment.getPaymentLink().getFees().get(0).getCode());
+                Assert.assertEquals(entry.getValue().getFees().get(0).getCalculatedAmount(), newPayment.getPaymentLink().getFees().get(0).getCalculatedAmount());
+                Assert.assertEquals(entry.getValue().getFees().get(0).getVersion(), newPayment.getPaymentLink().getFees().get(0).getVersion());
+
+        });
+        } finally {
         //Delete test csvfile
-        Files.delete(testCSV);
+            Files.delete(paymentsToReplayCSV);
+        }
     }
 
     @Test
     public void markPBAPaymentFailed_AutomatedTest() throws Exception {
+
+        File paymentsToFailCSV = null;
+
+        try {
         //create test csv file
-        final File testCSV = newFile("src/test/resources/paymentsToFailed.csv");
+            paymentsToFailCSV = newFile("src/test/resources/paymentsToFailed.csv");
 
         Map<String, CreditAccountPaymentRequest> csvParseMap = new HashMap<>();
 
@@ -199,9 +228,10 @@ public class ReplayCreditAccountPaymentControllerTest extends PaymentsDataUtil {
             //Status history should contain message as System Failure. Not charged
             Assert.assertEquals(existingPayment.getStatusHistories().get(0).getMessage(),"System Failure. Not charged");
         });
-
+        } finally {
         //Delete test csvfile
-        Files.delete(testCSV);
+            Files.delete(paymentsToFailCSV);
+        }
     }
 
     @Test
@@ -221,6 +251,51 @@ public class ReplayCreditAccountPaymentControllerTest extends PaymentsDataUtil {
 
         //Delete test csvfile
         Files.delete(testCSV);
+    }
+
+    @Test
+    public void replayCreditAccountPayment_ReplayNewOnlyIfOldPaymentExists() throws Exception {
+
+        File paymentsToReplayCSV = null;
+
+        try {
+            //create test csv file
+            paymentsToReplayCSV = newFile("src/test/resources/paymentsToReplay.csv");
+
+            Map<String, CreditAccountPaymentRequest> csvParseMap = new HashMap<>();
+
+            //Create 2 PBA payments
+            createCreditAccountPayments(csvParseMap, 2);
+
+            Map<String, CreditAccountPaymentRequest> csvParseMapWithIncorrectPayRef = new HashMap<>();
+
+            csvParseMap.entrySet().stream().forEach(entry -> {
+                csvParseMapWithIncorrectPayRef.put("RC-1607-0707-3939-" + RandomUtils.nextInt(9999), entry.getValue());
+            });
+
+            //Create CSV
+            createCSV(csvParseMapWithIncorrectPayRef,"paymentsToReplay.csv");
+
+            //Invoke replay-credit-account-payment
+            MockMultipartFile csvFile = new MockMultipartFile("csvFile", "paymentsToReplay.csv", "text/csv",
+                new FileInputStream(new File("src/test/resources/paymentsToReplay.csv")));
+
+            MvcResult result = restActions
+                .postWithMultiPartFileData("/replay-credit-account-payments",
+                    csvFile, "isReplayPBAPayments", "true")
+                .andExpect(status().isOk())
+                .andReturn();
+
+            csvParseMapWithIncorrectPayRef.entrySet().stream().forEach(entry -> {
+                List<Payment> paymentList = db.findByCcdCaseNumber(entry.getValue().getCcdCaseNumber());
+
+                Assert.assertEquals(1, paymentList.size());
+                Assert.assertNotEquals(entry.getKey(), paymentList.get(0).getReference());
+            });
+        } finally {
+            //Delete test csvfile
+            Files.delete(paymentsToReplayCSV);
+        }
     }
 
     private void createCSV(Map<String, CreditAccountPaymentRequest> csvParseMap , String fileName) throws IOException {
@@ -296,7 +371,7 @@ public class ReplayCreditAccountPaymentControllerTest extends PaymentsDataUtil {
     private CreditAccountPaymentRequest getPBAPayment(Double calculatedAmount, List<FeeDto> fees) {
         return CreditAccountPaymentRequest.createCreditAccountPaymentRequestDtoWith()
                 .amount(new BigDecimal(calculatedAmount))
-                .ccdCaseNumber("1607065536649" + RandomUtils.nextInt(999))
+                .ccdCaseNumber("1607065" + RandomUtils.nextInt(999999999))
                 .accountNumber("\"PBA0073" + RandomUtils.nextInt(999) + "\"")
                 .description("Money Claim issue fee")
                 .caseReference("\"9eb95270-7fee-48cf-afa2-e6c58ee" + RandomUtils.nextInt(999) + "ba\"")

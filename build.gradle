@@ -33,6 +33,23 @@ allprojects {
     sourceCompatibility = versions.javaVersion
     targetCompatibility = versions.javaVersion
 
+
+    configurations.all {
+        resolutionStrategy {
+            eachDependency { DependencyResolveDetails det ->
+
+                if (det.requested.name == 'handlebars') {
+                    det.useVersion '4.2.0'
+                }
+
+                if (det.requested.name == 'bcprov-jdk15on') {
+                    det.useVersion '1.68'
+                }
+
+            }
+        }
+    }
+
     repositories {
         mavenLocal()
         maven { url "https://dl.bintray.com/hmcts/hmcts-maven" }

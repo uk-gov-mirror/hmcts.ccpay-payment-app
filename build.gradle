@@ -46,6 +46,14 @@ allprojects {
                 if (det.requested.name == 'handlebars') {
                     det.useVersion '4.2.0'
                 }
+
+                if (det.requested.name == 'tomcat-embed-core') {
+                    det.useVersion '9.0.41'
+                }
+
+                if (det.requested.name == 'tomcat-embed-websocket') {
+                    det.useVersion '9.0.41'
+                }
             }
         }
     }

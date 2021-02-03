@@ -8,10 +8,11 @@ import uk.gov.hmcts.payment.api.configuration.LaunchDarklyFeatureToggler;
 import uk.gov.hmcts.payment.api.contract.CreditAccountPaymentRequest;
 import uk.gov.hmcts.payment.api.contract.FeeDto;
 import uk.gov.hmcts.payment.api.contract.PaymentDto;
-import uk.gov.hmcts.payment.api.contract.StatusHistoryDto;
+import uk.gov.hmcts.payment.api.dto.StatusHistoryDto;
 import uk.gov.hmcts.payment.api.contract.util.CurrencyCode;
 import uk.gov.hmcts.payment.api.controllers.CreditAccountPaymentController;
 import uk.gov.hmcts.payment.api.dto.PaymentGroupDto;
+import uk.gov.hmcts.payment.api.dto.response.CreateCreditAccountPaymentResponse;
 import uk.gov.hmcts.payment.api.model.Payment;
 import uk.gov.hmcts.payment.api.model.PaymentFee;
 import uk.gov.hmcts.payment.api.model.PaymentFeeLink;
@@ -29,9 +30,9 @@ public class CreditAccountDtoMapper {
     @Autowired
     private LaunchDarklyFeatureToggler featureToggler;
 
-    public PaymentDto toCreateCreditAccountPaymentResponse(PaymentFeeLink paymentFeeLink) {
+    public CreateCreditAccountPaymentResponse toCreateCreditAccountPaymentResponse(PaymentFeeLink paymentFeeLink) {
         Payment payment = paymentFeeLink.getPayments().get(0);
-        return PaymentDto.payment2DtoWith()
+        return CreateCreditAccountPaymentResponse.createCreditAccountPaymentResponse()
             .status(PayStatusToPayHubStatus.valueOf(payment.getPaymentStatus().getName()).getMappedStatus())
             .reference(payment.getReference())
             .paymentGroupReference(paymentFeeLink.getPaymentReference())

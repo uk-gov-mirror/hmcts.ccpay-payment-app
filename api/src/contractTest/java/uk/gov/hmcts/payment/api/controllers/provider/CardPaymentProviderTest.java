@@ -42,6 +42,7 @@ import uk.gov.hmcts.payment.api.service.DelegatingPaymentService;
 import uk.gov.hmcts.payment.api.service.FeePayApportionService;
 import uk.gov.hmcts.payment.api.service.PciPalPaymentService;
 import uk.gov.hmcts.payment.api.v1.model.govpay.GovPayAuthUtil;
+import uk.gov.hmcts.payment.api.validators.PaymentValidator;
 
 import java.io.IOException;
 import java.math.BigDecimal;
@@ -74,6 +75,8 @@ public class CardPaymentProviderTest {
     FeePayApportionService feePayApportionService;
     @Autowired
     LaunchDarklyFeatureToggler featureToggler;
+    @Autowired
+    PaymentValidator paymentValidator;
 
     @Autowired
     DelegatingPaymentService<PaymentFeeLink, String> cardDelegatingPaymentService;
@@ -103,7 +106,7 @@ public class CardPaymentProviderTest {
         MockMvcTestTarget testTarget = new MockMvcTestTarget();
         testTarget.setControllers(
             new CardPaymentController(cardDelegatingPaymentService, paymentDtoMapper, cardDetailsService, pciPalPaymentService, ff4j,
-                feePayApportionService, featureToggler));
+                feePayApportionService, featureToggler,paymentValidator));
         context.setTarget(testTarget);
 
     }

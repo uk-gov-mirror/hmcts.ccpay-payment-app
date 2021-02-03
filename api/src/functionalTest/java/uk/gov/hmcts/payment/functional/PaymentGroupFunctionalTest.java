@@ -13,10 +13,8 @@ import org.springframework.test.context.junit4.SpringRunner;
 import uk.gov.hmcts.payment.api.contract.*;
 import uk.gov.hmcts.payment.api.contract.util.CurrencyCode;
 import uk.gov.hmcts.payment.api.contract.util.Service;
-import uk.gov.hmcts.payment.api.dto.BulkScanPaymentRequest;
-import uk.gov.hmcts.payment.api.dto.PaymentGroupDto;
-import uk.gov.hmcts.payment.api.dto.RemissionDto;
-import uk.gov.hmcts.payment.api.dto.RemissionRequest;
+import uk.gov.hmcts.payment.api.dto.*;
+import uk.gov.hmcts.payment.api.dto.response.CreateCardPaymentResponse;
 import uk.gov.hmcts.payment.api.model.PaymentChannel;
 import uk.gov.hmcts.payment.api.model.PaymentStatus;
 import uk.gov.hmcts.payment.api.util.PaymentMethodType;
@@ -106,13 +104,13 @@ public class PaymentGroupFunctionalTest {
             .s2sToken(SERVICE_TOKEN)
             .returnUrl("https://www.moneyclaims.service.gov.uk")
             .when().createCardPayment(getCardPaymentRequest())
-            .then().gotCreated(PaymentDto.class, paymentDto -> {
+            .then().gotCreated(CreateCardPaymentResponse.class, paymentDto -> {
                 assertThat(paymentDto).isNotNull();
                 assertThat(paymentDto.getFees().get(0)).isEqualToComparingOnlyGivenFields(getFee());
                 assertThat(paymentDto.getReference().matches(PAYMENT_REFERENCE_REGEX)).isTrue();
 
                 String paymentGroupReference = paymentDto.getPaymentGroupReference();
-                FeeDto feeDto = paymentDto.getFees().get(0);
+                CardPaymentFeeDto feeDto = paymentDto.getFees().get(0);
                 Integer feeId = feeDto.getId();
 
                 // TEST create retrospective remission
@@ -380,13 +378,13 @@ public class PaymentGroupFunctionalTest {
             .s2sToken(SERVICE_TOKEN)
             .returnUrl("https://www.moneyclaims.service.gov.uk")
             .when().createCardPayment(cardPaymentRequest)
-            .then().gotCreated(PaymentDto.class, paymentDto -> {
+            .then().gotCreated(CreateCardPaymentResponse.class, paymentDto -> {
             assertThat(paymentDto).isNotNull();
             assertThat(paymentDto.getFees().get(0)).isEqualToComparingOnlyGivenFields(feeDto);
             assertThat(paymentDto.getReference().matches(PAYMENT_REFERENCE_REGEX)).isTrue();
 
             String paymentGroupReference = paymentDto.getPaymentGroupReference();
-            FeeDto feeDto1 = paymentDto.getFees().get(0);
+            CardPaymentFeeDto feeDto1 = paymentDto.getFees().get(0);
             Integer feeId = feeDto1.getId();
 
             // TEST create retrospective remission
@@ -467,13 +465,13 @@ public class PaymentGroupFunctionalTest {
             .s2sToken(SERVICE_TOKEN)
             .returnUrl("https://www.moneyclaims.service.gov.uk")
             .when().createCardPayment(cardPaymentRequest)
-            .then().gotCreated(PaymentDto.class, paymentDto -> {
+            .then().gotCreated(CreateCardPaymentResponse.class, paymentDto -> {
             assertThat(paymentDto).isNotNull();
             assertThat(paymentDto.getFees().get(0)).isEqualToComparingOnlyGivenFields(feeDto);
             assertThat(paymentDto.getReference().matches(PAYMENT_REFERENCE_REGEX)).isTrue();
 
             String paymentGroupReference = paymentDto.getPaymentGroupReference();
-            FeeDto feeDto1 = paymentDto.getFees().get(0);
+            CardPaymentFeeDto feeDto1 = paymentDto.getFees().get(0);
             Integer feeId = feeDto1.getId();
 
             // TEST create retrospective remission

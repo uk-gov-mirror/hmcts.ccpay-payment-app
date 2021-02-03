@@ -13,9 +13,11 @@ import uk.gov.hmcts.payment.api.configuration.LaunchDarklyFeatureToggler;
 import uk.gov.hmcts.payment.api.contract.FeeDto;
 import uk.gov.hmcts.payment.api.contract.PaymentAllocationDto;
 import uk.gov.hmcts.payment.api.contract.PaymentDto;
-import uk.gov.hmcts.payment.api.contract.StatusHistoryDto;
+import uk.gov.hmcts.payment.api.dto.CardPaymentFeeDto;
+import uk.gov.hmcts.payment.api.dto.StatusHistoryDto;
 import uk.gov.hmcts.payment.api.contract.util.CurrencyCode;
 import uk.gov.hmcts.payment.api.controllers.CardPaymentController;
+import uk.gov.hmcts.payment.api.dto.response.CreateCardPaymentResponse;
 import uk.gov.hmcts.payment.api.model.*;
 import uk.gov.hmcts.payment.api.reports.FeesService;
 import uk.gov.hmcts.payment.api.util.PayStatusToPayHubStatus;
@@ -39,6 +41,20 @@ public class PaymentDtoMapper {
     @Autowired
     private LaunchDarklyFeatureToggler featureToggler;
 
+    public CreateCardPaymentResponse toCreateCardPaymentResponse(PaymentFeeLink paymentFeeLink) {
+        Payment payment = paymentFeeLink.getPayments().get(0);
+        return CreateCardPaymentResponse.createCardPaymentWith()
+            .status(PayStatusToPayHubStatus.valueOf(payment.getStatus().toLowerCase()).getMappedStatus())
+            .reference(payment.getReference())
+            .paymentGroupReference(paymentFeeLink.getPaymentReference())
+            .dateCreated(payment.getDateCreated())
+            .externalReference(payment.getExternalReference())
+            .links(new CreateCardPaymentResponse.LinksDto(
+                payment.getNextUrl() == null ? null : new CreateCardPaymentResponse.LinkDto(payment.getNextUrl(), "GET"),
+                null, null
+            ))
+            .build();
+    }
 
     public PaymentDto toCardPaymentDto(PaymentFeeLink paymentFeeLink) {
         Payment payment = paymentFeeLink.getPayments().get(0);
@@ -100,18 +116,37 @@ public class PaymentDtoMapper {
     }
 
 
-    public PaymentDto toPciPalCardPaymentDto(PaymentFeeLink paymentFeeLink, String link) {
+    public CreateCardPaymentResponse toCreateCardPaymentTelephonyResponse(PaymentFeeLink paymentFeeLink, String link) {
         Payment payment = paymentFeeLink.getPayments().get(0);
-        return PaymentDto.payment2DtoWith()
+        return CreateCardPaymentResponse.createCardPaymentWith()
             .status(PayStatusToPayHubStatus.valueOf(payment.getStatus().toLowerCase()).getMappedStatus())
             .reference(payment.getReference())
             .paymentGroupReference(paymentFeeLink.getPaymentReference())
-            .fees(paymentFeeLink.getFees() != null ? toFeeDtos(paymentFeeLink.getFees()) : null)
+            .fees(paymentFeeLink.getFees() != null ? toCardPaymentFeeDtos(paymentFeeLink.getFees()) : null)
             .dateCreated(payment.getDateCreated())
-            .links(new PaymentDto.LinksDto(new PaymentDto.LinkDto(link, "GET"), null, null))
+            .links(new CreateCardPaymentResponse.LinksDto(new CreateCardPaymentResponse.LinkDto(link, "GET"), null, null))
             .build();
     }
 
+    private List<CardPaymentFeeDto> toCardPaymentFeeDtos(List<PaymentFee> fees) {
+        return fees.stream().map(this::toCardPaymentFeeDto).collect(Collectors.toList());
+    }
+
+    private CardPaymentFeeDto toCardPaymentFeeDto(PaymentFee fee) {
+        BigDecimal netAmount = fee.getNetAmount() != null ? fee.getNetAmount() : fee.getCalculatedAmount();
+        BigDecimal calculatedAmount = netAmount.equals(fee.getCalculatedAmount()) ? fee.getCalculatedAmount() : netAmount;
+
+        return CardPaymentFeeDto.cardPaymentFeeDtoWith()
+            .id(fee.getId())
+            .calculatedAmount(calculatedAmount)
+            .code(fee.getCode())
+            .netAmount(netAmount.equals(fee.getCalculatedAmount()) ? null : netAmount)
+            .version(fee.getVersion())
+            .volume(fee.getVolume())
+            .ccdCaseNumber(fee.getCcdCaseNumber())
+            .reference(fee.getReference())
+            .build();
+    }
     public PaymentDto toPciPalCardPaymentDto(PaymentFeeLink paymentFeeLink, Payment payment, String link) {
         return PaymentDto.payment2DtoWith()
             .status(PayStatusToPayHubStatus.valueOf(payment.getStatus().toLowerCase()).getMappedStatus())

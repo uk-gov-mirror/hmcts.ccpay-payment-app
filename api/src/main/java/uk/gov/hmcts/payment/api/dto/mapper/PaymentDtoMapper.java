@@ -310,12 +310,14 @@ public class PaymentDtoMapper {
                     Fee2Dto frFee = frFeeMap.get(fee.getCode());
                     fee.setJurisdiction1(frFee.getJurisdiction1Dto().getName());
                     fee.setJurisdiction2(frFee.getJurisdiction2Dto().getName());
-
+                    fee.setNaturalAccountCode(frFee.getMatchingVersion() != null ? frFee.getMatchingVersion().getNaturalAccountCode() : null);
+                    fee.setMemoLine(frFee.getMatchingVersion() != null ? frFee.getMatchingVersion().getMemoLine() : null);
+/*
                     Optional<FeeVersionDto> optionalFeeVersionDto = feesService.getFeeVersion(fee.getCode(), fee.getVersion());
                     if (optionalFeeVersionDto.isPresent()) {
                         fee.setMemoLine(optionalFeeVersionDto.get().getMemoLine());
                         fee.setNaturalAccountCode(optionalFeeVersionDto.get().getNaturalAccountCode());
-                    }
+                    }*/
                 } else {
                     LOG.info("No fee found with the code: {}", fee.getCode());
                 }

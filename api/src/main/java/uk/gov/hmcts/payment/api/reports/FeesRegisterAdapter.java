@@ -27,6 +27,7 @@ public class FeesRegisterAdapter {
     @Cacheable(value = "feesDtoMap", key = "#root.method.name", unless = "#result == null || #result.isEmpty()")
     public Map<String, Fee2Dto> getFeesDtoMap() {
         Map<String, Fee2Dto> feesDtoMap = null;
+        System.out.println("Cache is not available!!! Hence triggering ");
         try {
             Optional<Map<String, Fee2Dto>> optionalFeesDtoMap = feesRegisterClient.getFeesDataAsMap();
             if (optionalFeesDtoMap.isPresent()) {

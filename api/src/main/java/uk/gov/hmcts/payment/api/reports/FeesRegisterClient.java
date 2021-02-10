@@ -16,7 +16,7 @@ import static org.slf4j.LoggerFactory.getLogger;
 public interface FeesRegisterClient {
     Logger LOG = getLogger(FeesRegisterClient.class);
 
-    @GetMapping(value = "/fees-register/fees")
+    @GetMapping(value = "/fees")
     List<Fee2Dto> getFeesData();
 
     default Optional<Map<String,Fee2Dto>> getFeesDataAsMap() {

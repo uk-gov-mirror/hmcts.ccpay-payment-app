@@ -134,6 +134,12 @@ public class PaymentServiceImpl implements PaymentService<PaymentFeeLink, String
         return feePayApportionRepository.findByPaymentId(paymentId).orElse(Collections.EMPTY_LIST);
     }
 
+    @Override
+    public  Iterable<FeePayApportion> findAll()
+    {
+        return feePayApportionRepository.findAll();
+    }
+
     private Payment findSavedPayment(@NotNull String paymentReference) {
         return paymentRepository.findByReference(paymentReference).orElseThrow(PaymentNotFoundException::new);
     }

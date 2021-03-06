@@ -50,7 +50,7 @@ public class PaymentAllocationController {
         Optional<Payment> payment = paymentFeeLink.getPayments().stream()
             .filter(p -> p.getReference().equals(paymentAllocationDto.getPaymentReference())).findAny();
         if (payment.isPresent()) {
-            List<PaymentAllocation> paymentAllocationList = new ArrayList<PaymentAllocation>();
+            List<PaymentAllocation> paymentAllocationList = new ArrayList<>();
             PaymentAllocation paymentAllocation = PaymentAllocation.paymentAllocationWith()
                 .paymentReference(paymentAllocationDto.getPaymentReference())
                 .paymentGroupReference(paymentAllocationDto.getPaymentGroupReference())

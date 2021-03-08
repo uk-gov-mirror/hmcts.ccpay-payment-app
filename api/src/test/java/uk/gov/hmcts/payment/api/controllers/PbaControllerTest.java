@@ -13,9 +13,7 @@ import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.web.context.WebApplicationContext;
-import uk.gov.hmcts.payment.api.contract.PaymentDto;
 import uk.gov.hmcts.payment.api.dto.PaymentSearchCriteria;
-import uk.gov.hmcts.payment.api.dto.mapper.PaymentDtoMapper;
 import uk.gov.hmcts.payment.api.model.*;
 import uk.gov.hmcts.payment.api.service.PaymentService;
 import uk.gov.hmcts.payment.api.v1.componenttests.backdoors.ServiceResolverBackdoor;
@@ -29,8 +27,6 @@ import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.springframework.boot.test.context.SpringBootTest.WebEnvironment.MOCK;
 import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
@@ -58,9 +54,6 @@ public class PbaControllerTest {
     @MockBean
     PaymentService<PaymentFeeLink, String> paymentService;
 
-    @MockBean
-    private PaymentDtoMapper paymentDtoMapper;
-
     private static final String USER_ID = UserResolverBackdoor.SOLICITOR_ID;
 
     @Before
@@ -77,12 +70,50 @@ public class PbaControllerTest {
 
     @Test
     public void shouldReturnPaymentsForAccount() throws Exception {
-        when(paymentService.search(Mockito.any(PaymentSearchCriteria.class))).thenReturn(Arrays.asList(mock(PaymentFeeLink.class)));
-        when(paymentDtoMapper.toReconciliationResponseDto(any(PaymentFeeLink.class))).thenReturn(PaymentDto.payment2DtoWith().build());
+        PaymentFeeLink paymentFeeLink = getPaymentFeeLink();
+        List<PaymentFeeLink> paymentFeeLinkList = new ArrayList<>();
+        paymentFeeLinkList.add(paymentFeeLink);
+        when(paymentService.search(Mockito.any(PaymentSearchCriteria.class))).thenReturn(paymentFeeLinkList);
         MvcResult mvcResult = restActions
             .get("/pba-accounts/123123213/payments")
             .andExpect(status().isOk())
             .andReturn();
     }
 
+    private PaymentFeeLink getPaymentFeeLink(){
+        List<Remission> remissionList = new ArrayList<>();
+        Remission remission1 = Remission.remissionWith()
+            .remissionReference("remission-reference")
+            .build();
+        remissionList.add(remission1);
+        PaymentFee fee = PaymentFee.feeWith().calculatedAmount(new BigDecimal("499.99")).version("1").code("X0123").build();
+        List<PaymentFee> paymentFees = new ArrayList<>();
+        paymentFees.add(fee);
+        List<Payment> payments = new ArrayList<>();
+        StatusHistory statusHistory = StatusHistory.statusHistoryWith().status("Initiated").externalStatus("created").build();
+        Payment payment = Payment.paymentWith()
+            .amount(new BigDecimal("121.11"))
+            .caseReference("Reference")
+            .ccdCaseNumber("ccdCaseNumber")
+            .description("Test payments statuses")
+            .serviceType("PROBATE")
+            .currency("GBP")
+            .siteId("AA011")
+            .userId(USER_ID)
+            .paymentChannel(PaymentChannel.paymentChannelWith().name("online").build())
+            .paymentMethod(PaymentMethod.paymentMethodWith().name("card").build())
+            .paymentProvider(PaymentProvider.paymentProviderWith().name("gov pay").build())
+            .paymentStatus(PaymentStatus.paymentStatusWith().name("success").build())
+            .externalReference("ah0288ctvgqgcmbatdp1viu61j")
+            .reference("RC-1529-9159-9129-3183")
+            .statusHistories(Arrays.asList(statusHistory))
+            .build();
+        payments.add(payment);
+        return PaymentFeeLink.paymentFeeLinkWith()
+            .remissions(remissionList)
+            .payments(payments)
+            .paymentReference("payment-reference")
+            .fees(paymentFees)
+            .build();
+    }
 }

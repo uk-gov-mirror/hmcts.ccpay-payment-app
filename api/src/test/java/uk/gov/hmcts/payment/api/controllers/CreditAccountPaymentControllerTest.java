@@ -32,13 +32,11 @@ import uk.gov.hmcts.payment.api.v1.componenttests.sugar.RestActions;
 import java.math.BigDecimal;
 import java.sql.Date;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 import static java.lang.String.format;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.springframework.boot.test.context.SpringBootTest.WebEnvironment.MOCK;
 import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
@@ -93,39 +91,39 @@ public class CreditAccountPaymentControllerTest {
     public void testCreateCreditAccountPayment() throws Exception {
         List<FeeDto> feeDtoList = new ArrayList<>();
         FeeDto fee = FeeDto.feeDtoWith()
-            .calculatedAmount(BigDecimal.valueOf(10))
-            .code("FEE123")
-            .version("1")
-            .build();
+                        .calculatedAmount(BigDecimal.valueOf(10))
+                        .code("FEE123")
+                        .version("1")
+                        .build();
         feeDtoList.add(fee);
         CreditAccountPaymentRequest creditAccountPaymentRequest = CreditAccountPaymentRequest.createCreditAccountPaymentRequestDtoWith()
-            .amount(BigDecimal.valueOf(100))
-            .description("New passport application")
-            .ccdCaseNumber("ccd_case_number")
-            .caseReference("12345")
-            .service(Service.FINREM)
-            .currency(CurrencyCode.GBP)
-            .siteId("AA09")
-            .customerReference("customer_reference")
-            .organisationName("org-name")
-            .accountNumber("AC101010")
-            .fees(feeDtoList)
-            .build();
+                                                                            .amount(BigDecimal.valueOf(100))
+                                                                            .description("New passport application")
+                                                                            .ccdCaseNumber("ccd_case_number")
+                                                                            .caseReference("12345")
+                                                                            .service(Service.FINREM)
+                                                                            .currency(CurrencyCode.GBP)
+                                                                            .siteId("AA09")
+                                                                            .customerReference("customer_reference")
+                                                                            .organisationName("org-name")
+                                                                            .accountNumber("AC101010")
+                                                                            .fees(feeDtoList)
+                                                                            .build();
         AccountDto accountDto = AccountDto.accountDtoWith()
-            .accountName("accountName")
-            .accountNumber("AC101010")
-            .creditLimit(BigDecimal.valueOf(100))
-            .availableBalance(BigDecimal.valueOf(100))
-            .status(AccountStatus.ACTIVE)
-            .effectiveDate(Date.valueOf("2020-03-02"))
-            .build();
+                                    .accountName("accountName")
+                                    .accountNumber("AC101010")
+                                    .creditLimit(BigDecimal.valueOf(100))
+                                    .availableBalance(BigDecimal.valueOf(100))
+                                    .status(AccountStatus.ACTIVE)
+                                    .effectiveDate(Date.valueOf("2020-03-02"))
+                                    .build();
         when(accountService.retrieve(anyString())).thenReturn(accountDto);
         when(creditAccountPaymentService.create(any(Payment.class), anyList(), anyString())).thenReturn(getPaymentFeeLink());
         when(featureToggler.getBooleanValue(anyString(),anyBoolean())).thenReturn(true);
         MvcResult result =   restActions
-            .post("/credit-account-payments", creditAccountPaymentRequest)
-            .andExpect(status().isCreated())
-            .andReturn();
+                                .post("/credit-account-payments", creditAccountPaymentRequest)
+                                .andExpect(status().isCreated())
+                                .andReturn();
         PaymentDto paymentDto = objectMapper.readValue(result.getResponse().getContentAsString(), PaymentDto.class);
         assertEquals("2021-1614709196068",paymentDto.getReference());
     }
@@ -135,9 +133,9 @@ public class CreditAccountPaymentControllerTest {
 
         when(creditAccountPaymentService.retrieveByPaymentReference(anyString())).thenReturn(getPaymentFeeLink());
         MvcResult result =   restActions
-            .get("/credit-account-payments/2021-1614709196068")
-            .andExpect(status().isOk())
-            .andReturn();
+                                .get("/credit-account-payments/2021-1614709196068")
+                                .andExpect(status().isOk())
+                                .andReturn();
         PaymentDto paymentDto = objectMapper.readValue(result.getResponse().getContentAsString(),PaymentDto.class);
         System.out.println(result.getResponse().getContentAsString());
         assertEquals("ccd-number",paymentDto.getCcdCaseNumber());
@@ -145,15 +143,11 @@ public class CreditAccountPaymentControllerTest {
 
     @Test
     public void testRetrievePaymentStatus() throws Exception {
-        when(creditAccountPaymentService.retrieveByPaymentReference(anyString())).thenReturn(
-            PaymentFeeLink.paymentFeeLinkWith().payments(Arrays.asList(
-                Payment.paymentWith().reference("2021-1614709196068").paymentStatus(PaymentStatus.CREATED).statusHistories(Arrays.asList()).build()
-            )).build()
-        );
+        when(creditAccountPaymentService.retrieveByPaymentReference(anyString())).thenReturn(getPaymentFeeLink());
         MvcResult result =   restActions
-            .get("/credit-account-payments/2021-1614709196068/statuses")
-            .andExpect(status().isOk())
-            .andReturn();
+                                .get("/credit-account-payments/2021-1614709196068/statuses")
+                                .andExpect(status().isOk())
+                                .andReturn();
         PaymentDto paymentDto = objectMapper.readValue(result.getResponse().getContentAsString(),PaymentDto.class);
         assertEquals("2021-1614709196068",paymentDto.getReference());
 
@@ -170,8 +164,8 @@ public class CreditAccountPaymentControllerTest {
         paymentFees.add(fee);
         List<StatusHistory> statusHistories = new ArrayList<>();
         StatusHistory history = StatusHistory.statusHistoryWith()
-            .status("success")
-            .build();
+                                    .status("success")
+                                    .build();
         statusHistories.add(history);
         Payment payment = Payment.paymentWith()
             .paymentStatus(PaymentStatus.SUCCESS)

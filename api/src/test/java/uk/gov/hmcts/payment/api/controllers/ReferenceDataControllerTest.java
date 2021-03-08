@@ -87,7 +87,7 @@ public class ReferenceDataControllerTest {
         MvcResult mvcResult = this.mockMvc.perform(get("/reference-data/sites"))
                                         .andExpect(status().isOk())
                                         .andReturn();
-//        List<SiteDTO> actualResponse = objectMapper.readValue(mvcResult.getResponse().getContentAsString(),List.class);
-//        assertEquals(2,actualResponse.size());
+        List<SiteDTO> actualResponse = objectMapper.readValue(mvcResult.getResponse().getContentAsString(),List.class);
+        assertEquals(2,actualResponse.size());
     }
 }

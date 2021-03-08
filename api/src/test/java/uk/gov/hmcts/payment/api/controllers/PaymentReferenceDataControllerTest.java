@@ -113,8 +113,8 @@ public class PaymentReferenceDataControllerTest {
                             .get("/refdata/methods")
                             .andExpect(status().isOk())
                             .andReturn();
-//        List<LinkedHashMap> actualResponse = objectMapper.readValue(result.getResponse().getContentAsString(),List.class);
-//        assertEquals("payment-method-1",actualResponse.get(0).get("name"));
+        List<LinkedHashMap> actualResponse = objectMapper.readValue(result.getResponse().getContentAsString(),List.class);
+        assertEquals("payment-method-1",actualResponse.get(0).get("name"));
     }
 
     @Test
@@ -130,8 +130,8 @@ public class PaymentReferenceDataControllerTest {
             .get("/refdata/providers")
             .andExpect(status().isOk())
             .andReturn();
-//        List<LinkedHashMap> actualResponse = objectMapper.readValue(result.getResponse().getContentAsString(),List.class);
-//        assertEquals("payment-provider-name",actualResponse.get(0).get("name"));
+        List<LinkedHashMap> actualResponse = objectMapper.readValue(result.getResponse().getContentAsString(),List.class);
+        assertEquals("payment-provider-name",actualResponse.get(0).get("name"));
     }
 
     @Test
@@ -147,8 +147,8 @@ public class PaymentReferenceDataControllerTest {
             .get("/refdata/status")
             .andExpect(status().isOk())
             .andReturn();
-//        List<LinkedHashMap> actualResponse = objectMapper.readValue(result.getResponse().getContentAsString(),List.class);
-//        assertEquals("success",actualResponse.get(0).get("name"));
+        List<LinkedHashMap> actualResponse = objectMapper.readValue(result.getResponse().getContentAsString(),List.class);
+        assertEquals("success",actualResponse.get(0).get("name"));
     }
 
     @Test
@@ -164,8 +164,8 @@ public class PaymentReferenceDataControllerTest {
             .get("/refdata/legacy-sites")
             .andExpect(status().isOk())
             .andReturn();
-//        List<LinkedHashMap> actualResponse = objectMapper.readValue(result.getResponse().getContentAsString(),List.class);
-//        assertEquals("legacy-site-id",actualResponse.get(0).get("siteId"));
+        List<LinkedHashMap> actualResponse = objectMapper.readValue(result.getResponse().getContentAsString(),List.class);
+        assertEquals("legacy-site-id",actualResponse.get(0).get("siteId"));
 
 
     }

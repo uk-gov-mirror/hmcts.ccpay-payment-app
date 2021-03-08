@@ -1,10 +1,12 @@
 package uk.gov.hmcts.payment.api.controllers;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.joda.time.LocalDate;
+import org.joda.time.format.DateTimeFormat;
+import org.joda.time.format.DateTimeFormatter;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
@@ -13,14 +15,14 @@ import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.web.context.WebApplicationContext;
-import uk.gov.hmcts.payment.api.configuration.LaunchDarklyFeatureToggler;
-import uk.gov.hmcts.payment.api.dto.PaymentGroupDto;
+import uk.gov.hmcts.payment.api.contract.PaymentsResponse;
+import uk.gov.hmcts.payment.api.contract.UpdatePaymentRequest;
+import uk.gov.hmcts.payment.api.dto.PaymentSearchCriteria;
 import uk.gov.hmcts.payment.api.model.*;
 import uk.gov.hmcts.payment.api.service.PaymentService;
 import uk.gov.hmcts.payment.api.v1.componenttests.backdoors.ServiceResolverBackdoor;
 import uk.gov.hmcts.payment.api.v1.componenttests.backdoors.UserResolverBackdoor;
 import uk.gov.hmcts.payment.api.v1.componenttests.sugar.RestActions;
-import uk.gov.hmcts.payment.api.v1.model.exceptions.PaymentNotFoundException;
 
 import java.math.BigDecimal;
 import java.sql.Date;
@@ -28,7 +30,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 import static org.springframework.boot.test.context.SpringBootTest.WebEnvironment.MOCK;
@@ -39,7 +41,7 @@ import static org.springframework.test.web.servlet.setup.MockMvcBuilders.webAppC
 @RunWith(SpringRunner.class)
 @ActiveProfiles({"local", "componenttest"})
 @SpringBootTest(webEnvironment = MOCK)
-public class FeePayApportionControllerTest {
+public class PaymentControllerTest {
     @Autowired
     private WebApplicationContext webApplicationContext;
 
@@ -54,19 +56,18 @@ public class FeePayApportionControllerTest {
     @Autowired
     private ObjectMapper objectMapper;
 
-    private static final String USER_ID = UserResolverBackdoor.AUTHENTICATED_USER_ID;
-
     @MockBean
     private PaymentService<PaymentFeeLink, String> paymentService;
 
     @MockBean
-    private LaunchDarklyFeatureToggler featureToggler;
+    private PaymentStatusRepository paymentStatusRepository;
 
-    @MockBean
-    private PaymentFeeRepository paymentFeeRepository;
+    private static final String USER_ID = UserResolverBackdoor.AUTHENTICATED_USER_ID;
+
+    private static final DateTimeFormatter DATE_FORMAT = DateTimeFormat.forPattern("yyyy-MM-dd");
 
     @Before
-    public void setup(){
+    public void setup() {
         MockMvc mvc = webAppContextSetup(webApplicationContext).apply(springSecurity()).build();
         this.restActions = new RestActions(mvc, serviceRequestAuthorizer, userRequestAuthorizer, objectMapper);
 
@@ -78,36 +79,49 @@ public class FeePayApportionControllerTest {
     }
 
     @Test
-    public void testRetrieveApportionDetails() throws Exception {
-        FeePayApportion feePayApportion = FeePayApportion.feePayApportionWith()
-                                            .feeId(123)
-                                            .feeAmount(BigDecimal.valueOf(100))
-                                            .build();
-        List<FeePayApportion> feePayApportionList= new ArrayList<>();
-        feePayApportionList.add(feePayApportion);
-        PaymentFee paymentFee = PaymentFee.feeWith()
-                                    .code("FEE123")
-                                    .feeAmount(BigDecimal.valueOf(100))
-                                    .build();
+    public void testUpdateCaseReference() throws Exception {
         when(paymentService.retrieve(anyString())).thenReturn(getPaymentFeeLink());
-        when(featureToggler.getBooleanValue("apportion-feature",false)).thenReturn(true);
-        when(paymentService.findByPaymentId(anyInt())).thenReturn(feePayApportionList);
-        when(paymentFeeRepository.findById(anyInt())).thenReturn(java.util.Optional.ofNullable(paymentFee));
-        MvcResult result = restActions
-            .get("/payment-groups/fee-pay-apportion/RC-1234-1234-1234-1234")
-            .andExpect(status().isOk())
+        UpdatePaymentRequest request = UpdatePaymentRequest.updatePaymentRequestWith()
+                                                .caseReference("case-reference")
+                                                .ccdCaseNumber("ccd-number").build();
+        MvcResult mvcResult = restActions
+            .patch("/payments/RC-1234-1234-1234-1234",request)
+            .andExpect(status().isNoContent())
             .andReturn();
-        PaymentGroupDto paymentGroupDto  = objectMapper.readValue(result.getResponse().getContentAsString(),PaymentGroupDto.class);
-        assertEquals("RC-1234-1234-1234-1234",paymentGroupDto.getPaymentGroupReference());
     }
 
     @Test
-    public void testRetrieveApportionDetailsThrowsException_WhenPaymentNotFound() throws Exception {
-        when(paymentService.retrieve(anyString())).thenThrow(PaymentNotFoundException.class);
+    public void  testRetrievePayments() throws Exception {
+        String startDate = LocalDate.parse("2020-01-20").toString(DATE_FORMAT);
+        String endDate = LocalDate.parse("2020-01-21").toString(DATE_FORMAT);
+
+        when(paymentService.search(any(PaymentSearchCriteria.class))).thenReturn(getPaymentFeeLinkList());
         MvcResult result = restActions
-            .get("/payment-groups/fee-pay-apportion/RC-1519-9028-2432-0001")
-            .andExpect(status().isNotFound())
+            .get("/payments?start_date=" + startDate + "&end_date=" + endDate)
+            .andExpect(status().isOk())
             .andReturn();
+        PaymentsResponse paymentsResponse = objectMapper.readValue(result.getResponse().getContentAsString(),PaymentsResponse.class);
+        assertEquals("ccd-number",paymentsResponse.getPayments().get(0).getCcdCaseNumber());
+    }
+
+    @Test
+    public void testUpdatePaymentStatus() throws Exception {
+        when(paymentStatusRepository.findByNameOrThrow(anyString())).thenReturn(PaymentStatus.FAILED);
+        when(paymentService.retrieve(anyString())).thenReturn(getPaymentFeeLink());
+        MvcResult result = restActions
+            .patch("/payments/RC-1234-1234-1234-1234/status/failed")
+            .andExpect(status().isNoContent())
+            .andReturn();
+    }
+
+    @Test
+    public void testRetrievePayment() throws Exception {
+        when(paymentService.retrieve(anyString())).thenReturn(getPaymentFeeLink());
+        MvcResult result = restActions
+            .get("/payments/RC-1234-1234-1234-1234")
+            .andExpect(status().isOk())
+            .andReturn();
+        System.out.println(result.getResponse().getContentAsString());
     }
 
     private PaymentFeeLink getPaymentFeeLink(){
@@ -126,7 +140,8 @@ public class FeePayApportionControllerTest {
             .caseReference("case-reference")
             .ccdCaseNumber("ccd-number")
             .paymentMethod(PaymentMethod.paymentMethodWith().name("cash").build())
-            .dateCreated(Date.valueOf("2020-02-01"))
+            .dateCreated(Date.valueOf("2020-01-20"))
+            .dateUpdated(Date.valueOf("2020-01-21"))
             .externalReference("external-reference")
             .reference("RC-1234-1234-1234-1234")
             .build();
@@ -139,5 +154,11 @@ public class FeePayApportionControllerTest {
             .fees(paymentFees)
             .payments(paymentList)
             .build();
+    }
+
+    private List<PaymentFeeLink> getPaymentFeeLinkList(){
+        List<PaymentFeeLink> paymentFeeLinkList = new ArrayList<>();
+        paymentFeeLinkList.add(getPaymentFeeLink());
+        return paymentFeeLinkList;
     }
 }

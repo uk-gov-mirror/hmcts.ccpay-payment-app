@@ -3,7 +3,6 @@ package uk.gov.hmcts.payment.api.controllers;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.tomakehurst.wiremock.junit.WireMockClassRule;
 import lombok.SneakyThrows;
-import org.ff4j.FF4j;
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Rule;
@@ -85,19 +84,16 @@ public class CardPaymentControllerTest {
     private LaunchDarklyFeatureToggler featureToggler;
 
     @MockBean
-    private CardDetailsService<CardDetails, String> cardDetailsService;
+    CardDetailsService<CardDetails, String> cardDetailsService;
 
     @MockBean
-    private PciPalPaymentService pciPalPaymentService;
+    PciPalPaymentService pciPalPaymentService;
 
     @MockBean
-    private FeePayApportionService feePayApportionService;
+    FeePayApportionService feePayApportionService;
 
     @MockBean
-    private DelegatingPaymentService<PaymentFeeLink, String> delegatingPaymentService;
-
-    @MockBean
-    private FF4j ff4j;
+    DelegatingPaymentService<PaymentFeeLink, String> delegatingPaymentService;
 
     @Before
     public void setup() {
@@ -109,30 +105,25 @@ public class CardPaymentControllerTest {
             .withAuthorizedUser(USER_ID)
             .withUserId(USER_ID)
             .withReturnUrl("https://www.moneyclaims.service.gov.uk");
-        Mockito.reset(featureToggler);
-        Mockito.reset(cardDetailsService);
-        Mockito.reset(feePayApportionService);
-        Mockito.reset(pciPalPaymentService);
-        Mockito.reset(delegatingPaymentService);
     }
 
 
     @Test
     public void createCardPaymentWithValidInputData_shouldReturnStatusCreatedTest() throws Exception {
         Payment payment = Payment.paymentWith()
-                            .status("success")
-                            .reference("reference")
-                            .dateCreated(Date.from(Instant.now()))
-                            .externalReference("ext-reference")
-                            .build();
+            .status("success")
+            .reference("reference")
+            .dateCreated(Date.from(Instant.now()))
+            .externalReference("ext-reference")
+            .build();
         PaymentFee paymentFee = PaymentFee.feeWith().build();
         List<PaymentFee> feeList = new ArrayList<>();
         feeList.add(paymentFee);
         PaymentFeeLink paymentFeeLink = PaymentFeeLink.paymentFeeLinkWith()
-                                            .paymentReference(PaymentReference.getInstance().getNext())
-                                            .payments(Collections.singletonList(payment))
-                                            .fees(feeList)
-                                            .build();
+            .paymentReference(PaymentReference.getInstance().getNext())
+            .payments(Collections.singletonList(payment))
+            .fees(feeList)
+            .build();
         when(delegatingPaymentService.create(Mockito.any(PaymentServiceRequest.class))).thenReturn(paymentFeeLink);
         when( pciPalPaymentService.getPciPalLink(Mockito.any(PciPalPaymentRequest.class), Mockito.any(String.class))).thenReturn("link");
         when(featureToggler.getBooleanValue(Mockito.any(String.class),Mockito.anyBoolean())).thenReturn(false);
@@ -186,8 +177,8 @@ public class CardPaymentControllerTest {
     @Test
     public void shouldRetrieveWithCardDetails() throws Exception {
         CardDetails cardDetails = CardDetails.cardDetailsWith()
-                                        .lastDigitsCardNumber("1234")
-                                        .build();
+            .lastDigitsCardNumber("1234")
+            .build();
         when(cardDetailsService.retrieve(anyString())).thenReturn(cardDetails);
         restActions
             .get("/card-payments/123123123123123/details")
@@ -240,21 +231,11 @@ public class CardPaymentControllerTest {
 
     @Test
     public void shouldCallPaymentCancelFunction() throws Exception {
-        when(ff4j.check(anyString())).thenReturn(true);
+
         doNothing().when(delegatingPaymentService).cancel(anyString());
         restActions
             .post("/card-payments/RC-1612-3710-5335-6484/cancel")
             .andExpect(status().isNoContent())
-            .andReturn();
-    }
-
-    @Test
-    public void shouldCallPaymentCancelFunction_ThrowsPaymentException() throws Exception {
-        when(ff4j.check(anyString())).thenReturn(false);
-        doNothing().when(delegatingPaymentService).cancel(anyString());
-        restActions
-            .post("/card-payments/RC-1612-3710-5335-6484/cancel")
-            .andExpect(status().isBadRequest())
             .andReturn();
     }
 

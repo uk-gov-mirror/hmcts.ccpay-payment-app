@@ -7,6 +7,7 @@ import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.web.servlet.MockMvc;
@@ -27,7 +28,9 @@ import uk.gov.hmcts.payment.api.v1.componenttests.sugar.RestActions;
 
 import java.math.BigDecimal;
 import java.sql.Date;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -54,16 +57,8 @@ public class CaseControllerTest {
     RestActions restActions;
 
     @MockBean
-    private PaymentService<PaymentFeeLink, String> paymentService;
+    private PaymentFeeLinkRepository paymentFeeLinkRepository;
 
-    @MockBean
-    private PaymentGroupService<PaymentFeeLink, String> paymentGroupService;
-
-    @MockBean
-    private PaymentDtoMapper paymentDtoMapper;
-
-    @MockBean
-    private PaymentGroupDtoMapper paymentGroupDtoMapper;
 
     @Autowired
     private ObjectMapper objectMapper;
@@ -85,17 +80,17 @@ public class CaseControllerTest {
 
     @Test
     public void testRetrieveCasePayments() throws Exception {
-        when(paymentService.search(any(PaymentSearchCriteria.class))).thenReturn(Arrays.asList(mock(PaymentFeeLink.class)));
-        when(paymentDtoMapper.toReconciliationResponseDto(any(PaymentFeeLink.class))).thenReturn(PaymentDto.payment2DtoWith().build());
+        when(paymentFeeLinkRepository.findAll(any(Specification.class))).thenReturn(Arrays.asList(getPaymentFeeLink()));
         MvcResult result = restActions
             .get("/cases/12341234213412/payments")
             .andExpect(status().isOk())
             .andReturn();
     }
 
+
     @Test
     public void testRetrieveCasePayments_ThrowsPaymentNotFound() throws Exception {
-        when(paymentService.search(any(PaymentSearchCriteria.class))).thenReturn(Arrays.asList());
+      when(paymentFeeLinkRepository.findAll(any(Specification.class))).thenReturn(Arrays.asList());
         MvcResult result = restActions
             .get("/cases/12341234213412/payments")
             .andExpect(status().isNotFound())
@@ -105,21 +100,53 @@ public class CaseControllerTest {
 
     @Test
     public void testRetrieveCasePaymentGroups() throws Exception {
-        when(paymentGroupService.search(anyString())).thenReturn(Arrays.asList(mock(PaymentFeeLink.class)));
-        when(paymentGroupDtoMapper.toPaymentGroupDto(any(PaymentFeeLink.class))).thenReturn(PaymentGroupDto.paymentGroupDtoWith().build());
+        when(paymentFeeLinkRepository.findAll(any(Specification.class))).thenReturn(Arrays.asList(getPaymentFeeLink()));
         MvcResult result = restActions
             .get("/cases/12341234213412/paymentgroups")
             .andExpect(status().isOk())
             .andReturn();
     }
 
+
     @Test
     public void testRetrieveCasePaymentGroups_ThrowsPaymentGroupNotFoundException() throws Exception {
-        when(paymentGroupService.search(anyString())).thenReturn(Arrays.asList());
+        when(paymentFeeLinkRepository.findAll(any(Specification.class))).thenReturn(Arrays.asList());
         MvcResult result = restActions
             .get("/cases/12341234213412/paymentgroups")
             .andExpect(status().isNotFound())
             .andReturn();
     }
 
+
+    private PaymentFeeLink getPaymentFeeLink(){
+        List<PaymentFee> paymentFees = new ArrayList<>();
+        PaymentFee fee = PaymentFee.feeWith()
+            .feeAmount(BigDecimal.valueOf(30))
+            .calculatedAmount(BigDecimal.valueOf(101.89))
+            .code("X0101")
+            .ccdCaseNumber("CCD101")
+            .build();
+        paymentFees.add(fee);
+        Payment payment = Payment.paymentWith()
+            .paymentStatus(PaymentStatus.SUCCESS)
+            .status("success")
+            .paymentChannel(PaymentChannel.paymentChannelWith().name("card").build())
+            .currency("GBP")
+            .caseReference("case-reference")
+            .ccdCaseNumber("ccd-number")
+            .paymentMethod(PaymentMethod.paymentMethodWith().name("cash").build())
+            .dateCreated(Date.valueOf("2020-02-01"))
+            .externalReference("external-reference")
+            .reference("2021-1614709196068")
+            .build();
+        List<Payment> paymentList = new ArrayList<>();
+        paymentList.add(payment);
+        return PaymentFeeLink.paymentFeeLinkWith()
+            .paymentReference("2021-1614709196068")
+            .dateCreated(Date.valueOf("2020-01-20"))
+            .dateUpdated(Date.valueOf("2020-01-21"))
+            .fees(paymentFees)
+            .payments(paymentList)
+            .build();
+    }
 }

@@ -6,10 +6,13 @@ import org.hibernate.annotations.UpdateTimestamp;
 
 import javax.persistence.*;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 @Entity
 @Data
+@EqualsAndHashCode
 @Builder(builderMethodName = "paymentFeeLinkWith")
 @AllArgsConstructor
 @NoArgsConstructor
@@ -22,6 +25,18 @@ public class PaymentFeeLink {
 
     @Column(name = "payment_reference")
     private String paymentReference;
+
+    @Column(name = "enterprise_service_name")
+    private String enterpriseServiceName;
+
+    @Column(name = "org_id")
+    private String orgId;
+
+    @ToString.Exclude
+//    @ManyToMany(mappedBy = "orders")
+    @OneToMany(mappedBy = "orders", cascade = CascadeType.ALL)
+    private Set<CaseDetails> caseDetails = new HashSet<>();;
+
 
     @CreationTimestamp
     @Column(name = "date_created", nullable = false)
@@ -36,7 +51,7 @@ public class PaymentFeeLink {
     @ToString.Exclude
     private List<Payment> payments;
 
-    @OneToMany(cascade = CascadeType.ALL,fetch = FetchType.EAGER)
+    @OneToMany(cascade = CascadeType.ALL, fetch = FetchType.EAGER)
     @JoinColumn(name = "payment_link_id", referencedColumnName = "id", nullable = false)
     @ToString.Exclude
     private List<PaymentFee> fees;
@@ -53,7 +68,7 @@ public class PaymentFeeLink {
     private List<FeePayApportion> apportions;
 
     @Override
-    public int hashCode(){
+    public int hashCode() {
         return super.hashCode();
     }
 

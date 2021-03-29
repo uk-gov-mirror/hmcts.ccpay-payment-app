@@ -35,7 +35,7 @@ public class PaymentFeeLink {
 
     @ToString.Exclude
     @ManyToMany(mappedBy = "orders")
-    private Set<CaseDetails> caseDetails = new HashSet<>();
+    private Set<CaseDetails> caseDetails;
 
     @CreationTimestamp
     @Column(name = "date_created", nullable = false)

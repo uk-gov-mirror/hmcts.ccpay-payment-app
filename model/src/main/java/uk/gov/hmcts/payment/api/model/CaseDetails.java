@@ -31,7 +31,7 @@ public class CaseDetails{
         joinColumns = @JoinColumn(name = "case_details_id"),
         inverseJoinColumns = @JoinColumn(name = "order_id")
     )
-    private Set<PaymentFeeLink> orders = new HashSet<>();
+    private Set<PaymentFeeLink> orders;
 
     public void mapOrder2Case(PaymentFeeLink pf){
         orders.add(pf);

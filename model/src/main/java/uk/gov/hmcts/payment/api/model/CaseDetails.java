@@ -9,33 +9,37 @@ import uk.gov.hmcts.payment.api.jpaaudit.listner.PaymentFeeEntityListener;
 import javax.persistence.*;
 import java.math.BigDecimal;
 import java.sql.Timestamp;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
 @Entity
-@Data
-@Builder(builderMethodName = "caseDetailsWith")
 @AllArgsConstructor
 @NoArgsConstructor
+@Setter
+@Getter
+@Builder(builderMethodName = "caseDetailsWith")
 @Table(name = "case_details")
-@EqualsAndHashCode
 public class CaseDetails{
 
     @ToString.Exclude
-//    @ManyToMany(cascade = CascadeType.ALL)
-//    @JoinTable(
-//        name = "order_cases",
-//        joinColumns = {
-//            @JoinColumn(name = "order_id", referencedColumnName = "id",
-//                nullable = false, updatable = false)},
-//        inverseJoinColumns = {
-//            @JoinColumn(name = "case_details_id", referencedColumnName = "id",
-//                nullable = false, updatable = false)}
-//    )
-    @OneToMany(mappedBy = "caseDetails", cascade = CascadeType.ALL)
-    Set<PaymentFeeLink> orders = new HashSet<>();
+    @ManyToMany
+    @JoinTable(
+        name = "order_cases",
+        joinColumns = @JoinColumn(name = "case_details_id"),
+        inverseJoinColumns = @JoinColumn(name = "order_id")
+    )
+    private Set<PaymentFeeLink> orders = new HashSet<>();
+
+    public void mapOrder2Case(PaymentFeeLink pf){
+        orders.add(pf);
+    }
+
+    public void mapOrders2Case(List<PaymentFeeLink> pf){
+        orders.addAll(pf);
+    }
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

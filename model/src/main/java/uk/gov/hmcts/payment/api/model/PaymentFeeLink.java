@@ -5,17 +5,18 @@ import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import javax.persistence.*;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
 @Entity
-@Data
-@EqualsAndHashCode
-@Builder(builderMethodName = "paymentFeeLinkWith")
 @AllArgsConstructor
 @NoArgsConstructor
+@Setter
+@Getter
+@Builder(builderMethodName = "paymentFeeLinkWith")
 @Table(name = "payment_fee_link")
 public class PaymentFeeLink {
 
@@ -33,10 +34,8 @@ public class PaymentFeeLink {
     private String orgId;
 
     @ToString.Exclude
-//    @ManyToMany(mappedBy = "orders")
-    @OneToMany(mappedBy = "orders", cascade = CascadeType.ALL)
-    private Set<CaseDetails> caseDetails = new HashSet<>();;
-
+    @ManyToMany(mappedBy = "orders")
+    private Set<CaseDetails> caseDetails = new HashSet<>();
 
     @CreationTimestamp
     @Column(name = "date_created", nullable = false)

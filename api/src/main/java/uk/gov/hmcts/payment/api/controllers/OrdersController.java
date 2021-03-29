@@ -60,24 +60,15 @@ public class OrdersController {
     @Transactional
     public CreateOrderResponseDto createOrder(@Valid @RequestBody CreateOrderRequest request, @RequestHeader(required = false) MultiValueMap<String, String> headers) {
         OrganisationalServiceDto organisationalServiceDto = referenceDataService.getOrgDetail(request.getCaseType(),headers);
-        PaymentFeeLink pf = PaymentFeeLink.paymentFeeLinkWith()
-            .enterpriseServiceName(organisationalServiceDto.getServiceDescription())
-            .orgId(organisationalServiceDto.getServiceCode())
-            .fees(request.getFees().stream().map(this::toFee).collect(Collectors.toList()))
-            .build();
-        CaseDetails cd = CaseDetails.caseDetailsWith()
-            .caseReference(request.getCaseReference())
-            .ccdCaseNumber(request.getCcdCaseNumber())
-            .orders((Set<PaymentFeeLink>) PaymentFeeLink.paymentFeeLinkWith()
-                .enterpriseServiceName(organisationalServiceDto.getServiceDescription())
-                .orgId(organisationalServiceDto.getServiceCode())
-                .fees(request.getFees().stream().map(this::toFee).collect(Collectors.toList()))
-                .build())
-            .build();
-
-        orderCasesService.createOrder(cd,pf);
-//        LOG.info("Case Details : {} ",cd.getOrders().getEnterpriseServiceName());
-        return new CreateOrderResponseDto("sdfghjkl");
+        PaymentFeeLink pf = new PaymentFeeLink();
+        pf.setOrgId(organisationalServiceDto.getServiceCode());
+        pf.setEnterpriseServiceName(organisationalServiceDto.getServiceDescription());
+        pf.setFees(request.getFees().stream().map(this::toFee).collect(Collectors.toList()));
+        CaseDetails cd = new CaseDetails();
+        cd.setCaseReference(request.getCaseReference());
+        cd.setCcdCaseNumber(request.getCcdCaseNumber());
+        cd.mapOrder2Case(pf);
+        return new CreateOrderResponseDto(orderCasesService.createOrder(cd,pf));
     }
 
     public PaymentFee toFee(FeeDto feeDto) {

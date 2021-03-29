@@ -6,17 +6,14 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import uk.gov.hmcts.payment.api.model.CaseDetails;
 import uk.gov.hmcts.payment.api.model.CaseDetailsRepository;
-
-import uk.gov.hmcts.payment.api.model.OrderCases;
 import uk.gov.hmcts.payment.api.model.PaymentFeeLink;
 import uk.gov.hmcts.payment.api.model.PaymentFeeLinkRepository;
 
-import java.util.Collections;
-import java.util.Set;
-
+import java.util.Arrays;
+import java.util.stream.Collectors;
 
 @Service
-public class OrderCasesServiceImpl implements OrderCasesService {
+public class OrderCasesServiceImpl implements OrderCasesService<PaymentFeeLink,String> {
 
     private static final Logger LOG = LoggerFactory.getLogger(OrderCasesServiceImpl.class);
 
@@ -26,21 +23,14 @@ public class OrderCasesServiceImpl implements OrderCasesService {
     @Autowired
     private PaymentFeeLinkRepository paymentFeeLinkRepository;
 
-    @Autowired
-    private CaseDetails cd;
-
-    @Autowired
-    private PaymentFeeLink paymentFeeLink;
-
     @Override
-    public void createOrder ( CaseDetails caseDetails, PaymentFeeLink pf){
+    public String createOrder (CaseDetails caseDetails, PaymentFeeLink pf){
 
         LOG.info("CaseDetails {}",caseDetails.getCcdCaseNumber());
         caseDetailsRepository.save(caseDetails);
+        LOG.info("CaseRef {}",caseDetails.getCaseReference());
         paymentFeeLinkRepository.save(pf);
-
-//        caseDetailsRepository.save(caseDetails);
         LOG.info("asdfghjklkjhgfdsdfghjkjhgvc");
-
+        return "asdfghjk";
     }
 }

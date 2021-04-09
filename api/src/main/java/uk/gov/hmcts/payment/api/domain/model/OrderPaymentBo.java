@@ -46,4 +46,20 @@ public class OrderPaymentBo {
     private PaymentStatus status;
 
     private List<StatusHistory> statusHistories;
+
+    @Override
+    public String toString() {
+        return "reference='" + reference + '\'' +
+            ", amount=" + amount +
+            ", description='" + description + '\'' +
+            ", ccdCaseNumber='" + ccdCaseNumber + '\'' +
+            ", caseReference='" + caseReference + '\'' +
+            ", service=" + service +
+            ", currency=" + currency +
+            ", customerReference='" + customerReference + '\'' +
+            ", organisationName='" + organisationName + '\'' +
+            ", accountNumber='" + accountNumber + '\'' +
+            ", status=" + status +
+            ", statusHistories=" + statusHistories ;
+    }
 }

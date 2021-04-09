@@ -1,10 +1,14 @@
 package uk.gov.hmcts.payment.api.controllers;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonMappingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.swagger.annotations.*;
 import org.apache.commons.validator.routines.checkdigit.CheckDigitException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.annotation.Transactional;
@@ -15,9 +19,14 @@ import uk.gov.hmcts.payment.api.domain.service.OrderDomainService;
 import uk.gov.hmcts.payment.api.dto.mapper.CreditAccountDtoMapper;
 import uk.gov.hmcts.payment.api.dto.order.OrderDto;
 import uk.gov.hmcts.payment.api.dto.order.OrderPaymentDto;
+import uk.gov.hmcts.payment.api.model.IdempotencyKeys;
+import uk.gov.hmcts.payment.api.model.IdempotencyKeysPK;
+import uk.gov.hmcts.payment.api.model.IdempotencyKeysRepository;
 import uk.gov.hmcts.payment.api.v1.model.exceptions.*;
 
 import javax.validation.Valid;
+import java.util.Optional;
+import java.util.function.*;
 
 @RestController
 @Api(tags = {"Order"})
@@ -30,6 +39,9 @@ public class OrderController {
 
     @Autowired
     private CreditAccountDtoMapper creditAccountDtoMapper;
+
+    @Autowired
+    private IdempotencyKeysRepository idempotencyKeysRepository;
 
     @Autowired
     public OrderController(OrderDomainService orderDomainService){
@@ -59,16 +71,73 @@ public class OrderController {
     @PostMapping(value = "/order/{order-reference}/credit-account-payment")
     @ResponseBody
     @Transactional
-    public ResponseEntity<OrderPaymentBo> createCreditAccountPayment(@PathVariable("order-reference") String orderReference,
-                                                                     @Valid @RequestBody OrderPaymentDto orderPaymentDto) throws CheckDigitException {
-        // TODO: 12/03/2021 Payment Idempotence Check
-        /*
-        if(orderDomainService.isDuplicate(orderReference)) {
-            throw new DuplicatePaymentException("duplicate payment");
+    public ResponseEntity<OrderPaymentBo> createCreditAccountPayment(@RequestHeader(value = "idempotency_key") String idempotencyKey,
+                                                                     @PathVariable("order-reference") String orderReference,
+                                                                     @Valid @RequestBody OrderPaymentDto orderPaymentDto) throws CheckDigitException, InterruptedException, JsonProcessingException, JsonMappingException {
+
+        ObjectMapper objectMapper = new ObjectMapper();
+        Function<String, Optional<IdempotencyKeys>> getIdempotencyKey = (idempotencyKeyToCheck) -> idempotencyKeysRepository.findByIdempotencyKey(idempotencyKeyToCheck);
+
+        Function<IdempotencyKeys, ResponseEntity> validateHashcodeForRequest = (idempotencyKeys) -> {
+
+            OrderPaymentBo responseBO;
+            try {
+                if (!idempotencyKeys.getRequest_hashcode().equals(orderPaymentDto.hashCodeWithOrderReference(orderReference))) {
+                    return new ResponseEntity("Payment already present for idempotency key with different payment details", HttpStatus.CONFLICT); // 409 if hashcode not matched
+                }
+                responseBO = objectMapper.readValue(idempotencyKeys.getResponseBody(), OrderPaymentBo.class);
+            } catch (JsonProcessingException e) {
+                return new ResponseEntity(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+            }
+            return new ResponseEntity(responseBO, HttpStatus.valueOf(idempotencyKeys.getResponseCode())); // if hashcode matched
+        };
+
+        //Idempotency Check
+        Optional<IdempotencyKeys> idempotencyKeysRow = getIdempotencyKey.apply(idempotencyKey);
+        if (idempotencyKeysRow.isPresent()) {
+            ResponseEntity responseEntity = validateHashcodeForRequest.apply(idempotencyKeysRow.get());
+            return responseEntity;
         }
-         */
-        return new ResponseEntity<>(orderDomainService.addPayments(orderDomainService.find(orderReference), orderPaymentDto), HttpStatus.CREATED);
+        //PBA Payment
+        OrderPaymentBo orderPaymentBo = orderDomainService.addPayments(orderDomainService.find(orderReference), orderPaymentDto);
+
+        //Create Idempotency Record
+        return createIdempotencyRecord(objectMapper, idempotencyKey, orderReference, orderPaymentBo, orderPaymentDto);
     }
+
+    private ResponseEntity createIdempotencyRecord(ObjectMapper objectMapper, String idempotencyKey, String orderReference,
+                                                   OrderPaymentBo orderPaymentBo, OrderPaymentDto orderPaymentDto) throws JsonProcessingException, InterruptedException {
+        String requestJson = objectMapper.writeValueAsString(orderPaymentDto);
+        String finalResponseJson = objectMapper.writeValueAsString(orderPaymentBo);
+        ResponseEntity responseEntity = new ResponseEntity<>(orderPaymentBo, HttpStatus.CREATED);
+        int requestHashCode = orderPaymentDto.hashCodeWithOrderReference(orderReference);
+
+        IdempotencyKeys idempotencyRecord = IdempotencyKeys
+            .idempotencyKeysWith()
+            .idempotencyKey(idempotencyKey)
+            .requestBody(requestJson)
+            .request_hashcode(requestHashCode)   //save the hashcode
+            .responseBody(finalResponseJson)
+            .responseCode(responseEntity.getStatusCodeValue())
+            .build();
+
+        //Scenario for requests at the same time
+        Thread.sleep(30000);
+        try {
+            Optional<IdempotencyKeys> idempotencyKeysRecord = idempotencyKeysRepository.findById(IdempotencyKeysPK.idempotencyKeysPKWith().idempotencyKey(idempotencyKey).request_hashcode(requestHashCode).build());
+            if (idempotencyKeysRecord.isPresent()) {
+                return new ResponseEntity(objectMapper.readValue(idempotencyKeysRecord.get().getResponseBody(), OrderPaymentBo.class), HttpStatus.valueOf(idempotencyKeysRecord.get().getResponseCode()));
+            }
+
+            idempotencyKeysRepository.save(idempotencyRecord);
+
+        } catch (DataIntegrityViolationException exception) {
+            responseEntity = new ResponseEntity<>("First PBA Payment record currently in progress", HttpStatus.TOO_EARLY);
+        }
+
+        return responseEntity;
+    }
+
 
     @ResponseStatus(HttpStatus.NOT_FOUND)
     @ExceptionHandler(InvalidPaymentGroupReferenceException.class)
